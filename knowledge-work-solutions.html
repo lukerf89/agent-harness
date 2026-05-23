@@ -1,0 +1,2523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filling the Gaps — Open Source for a Knowledge-Work Agent Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --bg-elev: #131317;
+    --bg-elev-2: #1a1a20;
+    --bg-elev-3: #20202a;
+    --border: #26262e;
+    --border-soft: #1e1e25;
+    --border-strong: #2e2e38;
+    --text: #ededf0;
+    --text-2: #a0a0a8;
+    --text-3: #6a6a72;
+    --kw: #fbbf24;
+    --kw-dim: rgba(251,191,36,.12);
+    --gap: #f43f5e;
+    --gap-dim: rgba(244,63,94,.12);
+    --pick: #10b981;
+    --pick-dim: rgba(16,185,129,.12);
+    --skip: #f97316;
+    --skip-dim: rgba(249,115,22,.10);
+    --custom: #a78bfa;
+    --custom-dim: rgba(167,139,250,.12);
+    --info: #22d3ee;
+    --info-dim: rgba(34,211,238,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(16,185,129,0.06), transparent 60%),
+      radial-gradient(1000px 500px at -10% 30%, rgba(251,191,36,0.06), transparent 60%),
+      radial-gradient(900px 400px at 50% 110%, rgba(167,139,250,0.05), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  main, header { position: relative; z-index: 1; }
+  a { color: inherit; text-decoration: none; }
+  a.link { color: var(--info); border-bottom: 1px dashed rgba(34,211,238,.25); }
+  a.link:hover { border-bottom-color: var(--info); }
+  code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  pre { overflow-x: auto; }
+  pre code { background: transparent; padding: 0; font-size: 13px; color: #cdd0d4; }
+  .mono { font-size: .9em; }
+  em { color: var(--text-2); font-style: italic; }
+
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  @media (max-width: 720px) { .container { padding: 0 20px; } }
+
+  header.site {
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    background: rgba(10,10,12,0.72);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  header.site .bar {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  header.site .brand {
+    font-family: 'Fraunces', serif;
+    font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  header.site .brand em { color: var(--pick); font-style: normal; }
+  header.site nav { display: flex; gap: 22px; font-size: 13px; color: var(--text-2); }
+  header.site nav a { transition: color .15s; }
+  header.site nav a:hover { color: var(--text); }
+  @media (max-width: 980px) { header.site nav { display: none; } }
+
+  /* Hero */
+  section.hero {
+    padding: 110px 0 90px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .hero .eyebrow {
+    color: var(--text-3);
+    font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; margin-bottom: 28px;
+  }
+  .hero .eyebrow .pulse {
+    display: inline-block; width: 6px; height: 6px;
+    background: var(--pick); border-radius: 50%;
+    box-shadow: 0 0 12px var(--pick);
+    margin-right: 8px; vertical-align: middle;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(40px, 6vw, 76px);
+    font-weight: 600; line-height: 1.02;
+    letter-spacing: -0.025em; margin-bottom: 26px;
+    max-width: 16ch;
+  }
+  .hero h1 em { font-style: italic; color: var(--text-2); font-weight: 400; }
+  .hero h1 .accent { color: var(--pick); font-style: normal; font-weight: 600; }
+  .hero .lede {
+    max-width: 64ch; font-size: 19px;
+    color: var(--text-2); line-height: 1.6;
+    margin-bottom: 38px;
+  }
+  .hero .lede strong { color: var(--text); font-weight: 500; }
+  .hero .lede a { color: var(--kw); border-bottom: 1px dashed rgba(251,191,36,.3); }
+  .hero .lede a:hover { border-bottom-color: var(--kw); }
+  .hero .picks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px; background: var(--border-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px; overflow: hidden;
+    margin-top: 12px;
+  }
+  @media (max-width: 880px) { .hero .picks { grid-template-columns: repeat(2, 1fr); } }
+  .hero .picks .pick {
+    background: var(--bg-elev); padding: 18px 18px 20px;
+    font-size: 13px; color: var(--text-2);
+    border-top: 2px solid var(--pick);
+  }
+  .hero .picks .pick .kw {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-3);
+    margin-bottom: 6px; display: block;
+  }
+  .hero .picks .pick .v {
+    font-family: 'Fraunces', serif; font-size: 18px;
+    color: var(--text); font-weight: 600;
+    letter-spacing: -0.01em; margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .hero .picks .pick .lic {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--pick); margin-top: 4px;
+  }
+
+  /* Section */
+  section.bay {
+    padding: 90px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  section.bay.tight { padding: 60px 0; }
+  .section-eyebrow {
+    color: var(--text-3); font-size: 12px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .section-eyebrow .num {
+    color: var(--text); margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 3.5vw, 44px);
+    font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.1; margin-bottom: 18px;
+    max-width: 24ch;
+  }
+  .section-lede {
+    max-width: 74ch; font-size: 17px;
+    color: var(--text-2); line-height: 1.6;
+    margin-bottom: 44px;
+  }
+  .section-lede strong { color: var(--text); font-weight: 500; }
+  .section-lede em { color: var(--pick); font-style: normal; }
+
+  /* Gap overview grid */
+  .gap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .gap-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 22px 22px 20px;
+    position: relative;
+    display: flex; flex-direction: column;
+    gap: 10px;
+  }
+  .gap-card.existing::before {
+    content: ""; position: absolute; inset: 0 0 auto 0;
+    height: 2px; background: var(--gap);
+  }
+  .gap-card.new::before {
+    content: ""; position: absolute; inset: 0 0 auto 0;
+    height: 2px; background: var(--kw);
+  }
+  .gap-card .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    padding: 3px 7px; border-radius: 3px;
+    display: inline-block; align-self: flex-start;
+    text-transform: uppercase;
+  }
+  .gap-card.existing .badge {
+    background: var(--gap-dim); color: var(--gap);
+  }
+  .gap-card.new .badge {
+    background: var(--kw-dim); color: var(--kw);
+  }
+  .gap-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 18px; font-weight: 600;
+    letter-spacing: -0.01em; line-height: 1.2;
+  }
+  .gap-card p {
+    color: var(--text-2); font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .gap-card .pick-row {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+    display: flex; justify-content: space-between;
+    font-size: 12px; align-items: baseline;
+  }
+  .gap-card .pick-row .label {
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .gap-card .pick-row .val {
+    color: var(--pick); font-weight: 500;
+    font-size: 13px;
+  }
+
+  /* Deep-dive sections */
+  .deep {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 40px;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  @media (max-width: 720px) { .deep { padding: 28px 22px; } }
+  .deep .deep-header {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-soft);
+    padding-bottom: 18px;
+  }
+  .deep .deep-eyebrow {
+    color: var(--text-3); font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .deep .deep-eyebrow .num { color: var(--pick); margin-right: 14px; }
+  .deep h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 30px; font-weight: 600;
+    letter-spacing: -0.018em; line-height: 1.1;
+    margin: 6px 0 4px;
+    max-width: 28ch;
+  }
+  .deep .deep-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; padding: 3px 8px;
+    border-radius: 3px; letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .deep .deep-tag.existing { background: var(--gap-dim); color: var(--gap); }
+  .deep .deep-tag.new { background: var(--kw-dim); color: var(--kw); }
+
+  .deep .lede {
+    font-size: 16px; color: var(--text-2);
+    line-height: 1.65; max-width: 74ch;
+    margin-bottom: 28px;
+  }
+  .deep .lede strong { color: var(--text); font-weight: 500; }
+
+  /* Recommendation callout */
+  .recommend {
+    background: linear-gradient(180deg, rgba(16,185,129,.07), rgba(16,185,129,.02));
+    border: 1px solid rgba(16,185,129,.3);
+    border-left: 3px solid var(--pick);
+    border-radius: 8px;
+    padding: 22px 26px;
+    margin: 6px 0 30px;
+  }
+  .recommend .r-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--pick);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .recommend .r-label::before {
+    content: ""; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--pick);
+    box-shadow: 0 0 8px var(--pick);
+  }
+  .recommend .r-body {
+    font-size: 16.5px; line-height: 1.6; color: var(--text);
+  }
+  .recommend .r-body strong { color: var(--pick); font-weight: 600; }
+  .recommend .r-body code {
+    background: rgba(16,185,129,.1); padding: 2px 6px;
+    border-radius: 3px; font-size: 13px;
+    border: 1px solid rgba(16,185,129,.2);
+  }
+
+  /* Contender table */
+  .contend-wrap {
+    overflow-x: auto;
+    margin: 20px 0 24px;
+  }
+  table.contend {
+    width: 100%; min-width: 640px;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table.contend th, table.contend td {
+    padding: 12px 14px; text-align: left;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: top;
+  }
+  table.contend th {
+    background: var(--bg-elev-2);
+    font-weight: 600; font-size: 10.5px;
+    letter-spacing: 0.06em; color: var(--text-2);
+    text-transform: uppercase;
+  }
+  table.contend tr:last-child td { border-bottom: none; }
+  table.contend td.name {
+    color: var(--text); font-weight: 500;
+    border-right: 1px solid var(--border-soft);
+    background: rgba(255,255,255,0.015);
+    width: 22%;
+  }
+  table.contend td.name .sub {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-3);
+    margin-top: 3px;
+    font-weight: 400;
+  }
+  table.contend tr.winner td {
+    background: rgba(16,185,129,.06);
+  }
+  table.contend tr.winner td.name {
+    background: rgba(16,185,129,.1);
+    color: var(--pick);
+  }
+  table.contend tr.skip td.name {
+    color: var(--text-3);
+    text-decoration: line-through;
+    text-decoration-color: rgba(244,63,94,.4);
+  }
+  table.contend .verdict {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+  table.contend .verdict.pick { background: var(--pick-dim); color: var(--pick); }
+  table.contend .verdict.alt { background: var(--info-dim); color: var(--info); }
+  table.contend .verdict.skip { background: var(--gap-dim); color: var(--gap); }
+  table.contend .verdict.watch { background: var(--kw-dim); color: var(--kw); }
+
+  table.contend .lic {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  table.contend .lic.good { background: rgba(16,185,129,.1); color: var(--pick); }
+  table.contend .lic.warn { background: rgba(251,191,36,.1); color: var(--kw); }
+  table.contend .lic.bad { background: rgba(244,63,94,.1); color: var(--gap); }
+
+  /* Analysis prose */
+  .deep .body p {
+    color: var(--text-2); font-size: 14.5px;
+    line-height: 1.75; margin-bottom: 14px;
+  }
+  .deep .body p strong { color: var(--text); font-weight: 500; }
+  .deep .body p code {
+    background: var(--bg-elev-2); color: var(--text);
+    padding: 1px 6px; border-radius: 3px;
+    border: 1px solid var(--border-soft);
+    font-size: 12.5px;
+  }
+  .deep .body h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 18px; font-weight: 600;
+    color: var(--text); margin: 24px 0 12px;
+    letter-spacing: -0.01em;
+  }
+  .deep .body ul {
+    list-style: none; padding: 0;
+    margin: 6px 0 16px;
+  }
+  .deep .body ul li {
+    padding: 4px 0 4px 22px;
+    color: var(--text-2); font-size: 14px;
+    position: relative; line-height: 1.6;
+  }
+  .deep .body ul li::before {
+    content: "▸"; position: absolute; left: 6px; top: 4px;
+    color: var(--pick); font-size: 11px;
+  }
+  .deep .body ul li strong { color: var(--text); font-weight: 500; }
+
+  /* Unsolved callout */
+  .unsolved {
+    background: rgba(244,63,94,.04);
+    border: 1px solid rgba(244,63,94,.2);
+    border-left: 3px solid var(--gap);
+    border-radius: 8px;
+    padding: 22px 26px;
+    margin-top: 28px;
+  }
+  .unsolved .u-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gap);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .unsolved .u-label::before {
+    content: ""; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--gap);
+    box-shadow: 0 0 8px var(--gap);
+  }
+  .unsolved p {
+    color: var(--text); font-size: 14.5px;
+    line-height: 1.65;
+  }
+  .unsolved p strong { color: var(--gap); font-weight: 600; }
+
+  /* Code snippet */
+  pre.snippet {
+    background: rgba(0,0,0,0.32);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    padding: 18px 20px; margin: 14px 0 20px;
+    font-size: 12.5px; line-height: 1.6;
+  }
+
+  /* Stack architecture */
+  .stack {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 36px 28px;
+  }
+  .stack svg {
+    width: 100%; height: auto; display: block;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .stack-legend {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    margin-top: 30px; padding-top: 24px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 12px; justify-content: center;
+  }
+  .stack-legend .lk {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: var(--text-2);
+  }
+  .stack-legend .lk::before {
+    content: ""; width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+  .stack-legend .lk.pick::before { background: var(--pick); }
+  .stack-legend .lk.custom::before { background: var(--custom); }
+  .stack-legend .lk.kw::before { background: var(--kw); }
+  .stack-legend .lk.info::before { background: var(--info); }
+
+  /* Build vs buy matrix */
+  .matrix {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 900px) { .matrix { grid-template-columns: 1fr; } }
+  .matrix .col {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 26px 22px;
+  }
+  .matrix .col.buy { border-top: 2px solid var(--pick); }
+  .matrix .col.borrow { border-top: 2px solid var(--info); }
+  .matrix .col.build { border-top: 2px solid var(--custom); }
+  .matrix .col .col-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .matrix .col.buy .col-label { color: var(--pick); }
+  .matrix .col.borrow .col-label { color: var(--info); }
+  .matrix .col.build .col-label { color: var(--custom); }
+  .matrix .col h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 20px; font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  .matrix .col .tagline {
+    font-size: 13px; color: var(--text-2);
+    margin-bottom: 18px; line-height: 1.55;
+  }
+  .matrix .col ul {
+    list-style: none; padding: 0;
+    border-top: 1px solid var(--border-soft);
+  }
+  .matrix .col ul li {
+    padding: 12px 0; font-size: 13.5px;
+    color: var(--text-2); line-height: 1.5;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .matrix .col ul li:last-child { border-bottom: none; }
+  .matrix .col ul li strong {
+    color: var(--text); font-weight: 500;
+    display: block; margin-bottom: 2px;
+    font-size: 14px;
+  }
+  .matrix .col ul li .why {
+    color: var(--text-3); font-size: 12px;
+    margin-top: 4px; display: block;
+    font-style: italic;
+  }
+
+  /* Unsolved grand list */
+  .unsolved-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+  }
+  .unsolved-grid .ug {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-left: 3px solid var(--gap);
+    border-radius: 8px;
+    padding: 22px 22px;
+  }
+  .unsolved-grid .ug .ug-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.12em;
+    color: var(--gap); display: inline-block;
+    padding: 2px 7px; border-radius: 3px;
+    background: var(--gap-dim);
+    margin-bottom: 10px;
+  }
+  .unsolved-grid .ug h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 17px; font-weight: 600;
+    line-height: 1.2; margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+  .unsolved-grid .ug p {
+    color: var(--text-2); font-size: 13.5px;
+    line-height: 1.55;
+  }
+
+  /* Closing */
+  .closing {
+    background: linear-gradient(180deg, var(--bg-elev), var(--bg));
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 48px 40px;
+    margin-top: 28px;
+  }
+  .closing h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 32px; font-weight: 600;
+    letter-spacing: -0.02em; margin-bottom: 20px;
+    max-width: 24ch;
+  }
+  .closing p {
+    font-size: 16px; line-height: 1.7;
+    color: var(--text-2); max-width: 72ch;
+    margin-bottom: 14px;
+  }
+  .closing p strong { color: var(--text); font-weight: 500; }
+  .closing p em { color: var(--pick); font-style: normal; font-weight: 500; }
+
+  footer.site {
+    padding: 50px 0 70px;
+    color: var(--text-3); font-size: 13px;
+  }
+  footer.site a { color: var(--text-2); }
+  footer.site a:hover { color: var(--text); }
+
+  /* Pull-quote source links */
+  .src-list {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border-soft);
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .src-list .src-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3); margin-right: 10px;
+  }
+  .src-list a {
+    color: var(--text-2);
+    border-bottom: 1px dashed var(--border-soft);
+    margin-right: 12px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .src-list a:hover { color: var(--info); border-bottom-color: var(--info); }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand">Knowledge-Work <em>Solutions</em></div>
+    <nav>
+      <a href="#overview">Gaps</a>
+      <a href="#memory">Memory</a>
+      <a href="#workflows">Workflows</a>
+      <a href="#provenance">Provenance</a>
+      <a href="#drafts">Drafts</a>
+      <a href="#observability">Eval</a>
+      <a href="#documents">Docs</a>
+      <a href="#mcp">Tools</a>
+      <a href="#frameworks">Engine</a>
+      <a href="#stack">Stack</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow"><span class="pulse"></span>Solutions report · 2026 OSS landscape · companion to <a class="link" href="./knowledge-work-harness.html">the design report</a></div>
+    <h1>What you can <span class="accent">buy</span>, what you build.</h1>
+    <p class="lede">
+      The <a href="./knowledge-work-harness.html">design report</a> named four problems no coding-agent harness has had to solve, and proposed an architectural shape. This report is the
+      buy-versus-build sweep: <strong>eight gaps</strong> — four from the design report, four more that surface from the same architectural pressures — mapped against the
+      open-source landscape as it stands in mid-2026. For each gap: the contenders, the opinionated pick, the parts that
+      remain genuinely unsolved. The goal isn't a survey; the goal is a defensible <em>stack</em> you could break ground on tomorrow.
+    </p>
+
+    <div class="picks">
+      <div class="pick">
+        <span class="kw">Memory</span>
+        <div class="v">Graphiti + Qdrant</div>
+        <span class="lic">Apache 2.0</span>
+      </div>
+      <div class="pick">
+        <span class="kw">Workflows</span>
+        <div class="v">Restate</div>
+        <span class="lic">Apache 2.0</span>
+      </div>
+      <div class="pick">
+        <span class="kw">Provenance</span>
+        <div class="v">Citations API + Instructor</div>
+        <span class="lic">+ custom PROV-O</span>
+      </div>
+      <div class="pick">
+        <span class="kw">Drafts</span>
+        <div class="v">Yjs 14 + BlockNote</div>
+        <span class="lic">MIT</span>
+      </div>
+      <div class="pick">
+        <span class="kw">Eval &amp; observability</span>
+        <div class="v">Langfuse + Inspect AI</div>
+        <span class="lic">MIT</span>
+      </div>
+      <div class="pick">
+        <span class="kw">Documents</span>
+        <div class="v">Docling + PaddleOCR-VL</div>
+        <span class="lic">Apache 2.0</span>
+      </div>
+      <div class="pick">
+        <span class="kw">SaaS tools</span>
+        <div class="v">Nango + Code Mode</div>
+        <span class="lic">Elastic + pattern</span>
+      </div>
+      <div class="pick">
+        <span class="kw">Engine</span>
+        <div class="v">Build it. Borrow primitives.</div>
+        <span class="lic">Pydantic AI · BAML · Claude SDK</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OVERVIEW -->
+<section class="bay" id="overview">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>The gaps, restated</div>
+    <h2 class="section-title">Four from the design report, four more from the same pressures.</h2>
+    <p class="section-lede">
+      The original design report named four gaps that the five studied coding harnesses don&rsquo;t solve. Re-reading it against the 2026
+      OSS landscape, four more surface — not because they were missed, but because each is an obvious consequence of the same three
+      architectural asymmetries (verification, blast radius, source-of-truth). They're called out below in <strong>gold</strong>;
+      the originals in <strong>red</strong>.
+    </p>
+
+    <div class="gap-grid">
+      <div class="gap-card existing">
+        <span class="badge">Gap 1 · Design report</span>
+        <h3>Retrieval-augmented memory across sessions</h3>
+        <p>Vector store, semantic recall, provenance on every fragment, staleness signal — none of the five harnesses do this; they lean on filesystem reads.</p>
+        <div class="pick-row">
+          <span class="label">Pick</span>
+          <span class="val">Graphiti + Qdrant + bge-v2-m3</span>
+        </div>
+      </div>
+      <div class="gap-card existing">
+        <span class="badge">Gap 2 · Design report</span>
+        <h3>Proactive, long-horizon loops</h3>
+        <p>Cron + webhook + RSS scheduling, days-to-weeks suspensions, budget caps, idempotent re-wakes — all five harnesses are reactive only.</p>
+        <div class="pick-row">
+          <span class="label">Pick</span>
+          <span class="val">Restate</span>
+        </div>
+      </div>
+      <div class="gap-card existing">
+        <span class="badge">Gap 3 · Design report</span>
+        <h3>Source provenance surviving synthesis</h3>
+        <p>Every claim carries traceable lineage to its underlying sources, even after multi-hop summarization. Trivial for coding (the code <em>is</em> the source); unsolved for knowledge work.</p>
+        <div class="pick-row">
+          <span class="label">Pick</span>
+          <span class="val">Citations API + Instructor + custom DAG</span>
+        </div>
+      </div>
+      <div class="gap-card existing">
+        <span class="badge">Gap 4 · Design report</span>
+        <h3>Draft / refine cycle as first-class state</h3>
+        <p>A draft isn't a message turn; it's a versioned document with author attribution, send-binding to specific versions, and structured critique input.</p>
+        <div class="pick-row">
+          <span class="label">Pick</span>
+          <span class="val">Yjs 14 + BlockNote + DSPy Refine</span>
+        </div>
+      </div>
+
+      <div class="gap-card new">
+        <span class="badge">Gap 5 · New</span>
+        <h3>Observability and continuous eval</h3>
+        <p>Verification is human and slow — the compiler doesn&rsquo;t save you. So you instrument every step and run eval against production traffic, not just at build time.</p>
+        <div class="pick-row">
+          <span class="label">Pick</span>
+          <span class="val">Langfuse + DeepEval + Inspect + Argilla</span>
+        </div>
+      </div>
+      <div class="gap-card new">
+        <span class="badge">Gap 6 · New</span>
+        <h3>Document &amp; multimodal understanding</h3>
+        <p>Knowledge work is PDF-shaped, slide-deck-shaped, spreadsheet-shaped, meeting-audio-shaped. Coding harnesses barely touch any of it.</p>
+        <div class="pick-row">
+          <span class="label">Pick</span>
+          <span class="val">Docling · PaddleOCR-VL · GMFT · ColQwen · WhisperX</span>
+        </div>
+      </div>
+      <div class="gap-card new">
+        <span class="badge">Gap 7 · New</span>
+        <h3>Tool / MCP ecosystem at scale</h3>
+        <p>Coding agents need ~10 tools; a knowledge worker&rsquo;s ~100. The challenge isn&rsquo;t per-tool; it's tool selection, multi-tenant OAuth, naming dedup, and not blowing the context window.</p>
+        <div class="pick-row">
+          <span class="label">Pick</span>
+          <span class="val">Nango + Code Mode + FastMCP + Obot</span>
+        </div>
+      </div>
+      <div class="gap-card new">
+        <span class="badge">Gap 8 · New</span>
+        <h3>Engine: build vs adopt</h3>
+        <p>Every framework wants to be your engine. The five studied harnesses prove you can roll your own. What primitives are actually worth borrowing in 2026?</p>
+        <div class="pick-row">
+          <span class="label">Pick</span>
+          <span class="val">Build it. Borrow three things.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP 1: MEMORY -->
+<section class="bay tight" id="memory">
+  <div class="container">
+    <div class="deep">
+      <div class="deep-header">
+        <div>
+          <div class="deep-eyebrow"><span class="num">GAP 01</span>MEMORY · RETRIEVAL · STALENESS</div>
+          <h2>The repo is not your substrate any more.</h2>
+        </div>
+        <span class="deep-tag existing">Design report</span>
+      </div>
+      <p class="lede">
+        The coding-harness memory model is a sliding window over an authoritative substrate (the git repo). Take the substrate away — which is
+        exactly what knowledge work does — and what remains is <strong>lossy compression of the only copy</strong>. The third tier of memory
+        (cross-session, semantic, provenance-aware, staleness-aware) is the single largest architectural gap in the field.
+      </p>
+
+      <div class="recommend">
+        <div class="r-label">Recommendation</div>
+        <div class="r-body">
+          Build on <strong>Graphiti</strong> (Apache 2.0, bi-temporal knowledge graph by Zep) as the primary memory layer, with
+          <strong>Qdrant</strong> (Apache 2.0) as the parallel vector store for content that doesn&rsquo;t deserve a graph node, and
+          <strong>bge-reranker-v2-m3</strong> via <code>AnswerDotAI/rerankers</code> for the rerank step. The bi-temporal data
+          model (<code>valid_from</code>, <code>valid_to</code>, <code>ingested_at</code> on every edge) is the only OSS architecture where provenance,
+          staleness, and contradiction tracking are first-class — not bolt-ons.
+        </div>
+      </div>
+
+      <div class="contend-wrap">
+        <table class="contend">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>License</th>
+              <th>Provenance + staleness</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="winner">
+              <td class="name">Graphiti<span class="sub">getzep · 26.4k★</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Bi-temporal edges, episode lineage, explicit supersession</td>
+              <td><span class="verdict pick">PRIMARY</span></td>
+            </tr>
+            <tr>
+              <td class="name">mem0<span class="sub">mem0ai · 56.5k★</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>v3 is ADD-only — supersession collapses to recency; staleness flagged as <em>open</em> in their own 2026 post</td>
+              <td><span class="verdict skip">WRONG FIT</span></td>
+            </tr>
+            <tr>
+              <td class="name">Letta (MemGPT)<span class="sub">letta-ai · 22.9k★</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Framework, not library; would force you to adopt their loop</td>
+              <td><span class="verdict skip">SCOPE MISMATCH</span></td>
+            </tr>
+            <tr>
+              <td class="name">Cognee<span class="sub">topoteretes · 17.5k★</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Broader, less opinionated; production maturity still on roadmap</td>
+              <td><span class="verdict watch">WATCH</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Qdrant<span class="sub">qdrant · vector store</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Rust core, ACORN-filtered HNSW, hybrid BM25+dense via named vectors, payload-rich provenance</td>
+              <td><span class="verdict pick">PRIMARY</span></td>
+            </tr>
+            <tr>
+              <td class="name">LanceDB<span class="sub">lancedb · embedded</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Strong local-first / single-user option; zero ops</td>
+              <td><span class="verdict alt">ALT (embedded)</span></td>
+            </tr>
+            <tr>
+              <td class="name">pgvector<span class="sub">pgvector/pgvector</span></td>
+              <td><span class="lic good">PostgreSQL</span></td>
+              <td>Fine under ~10M vectors; weak hybrid story</td>
+              <td><span class="verdict alt">ALT (PG-native)</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">bge-reranker-v2-m3<span class="sub">BAAI · 278M params</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Multilingual cross-encoder; 51.8 nDCG@10 on BEIR; wrap through <code>rerankers</code> for easy swap</td>
+              <td><span class="verdict pick">PRIMARY</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="body">
+        <p>
+          Mem0 is the benchmark king (LoCoMo 91.6, LongMemEval 94.8) and the loudest in the space. It would be the obvious pick if
+          the bar were &ldquo;turnkey embeddings + entity linking.&rdquo; The bar isn't that — it's <strong>defensible provenance</strong>.
+          Mem0's v3 went single-pass ADD-only by design, optimizing throughput at the cost of explicit supersession with audit
+          trail. The mem0 team's own &ldquo;State of Agent Memory 2026&rdquo; post lists staleness in high-relevance memories as an
+          <em>open problem</em>. That's the disqualifier.
+        </p>
+        <p>
+          Graphiti pays for its provenance with extraction cost — the mem0 paper measured Zep's token footprint at ~600k per
+          conversation versus mem0's 1,764. Budget for it, batch ingestion off the hot path, and accept the tradeoff. You also pay
+          with a graph backend dependency (Neo4j 5.26+, FalkorDB, Kuzu, or Neptune); <strong>Kuzu</strong> is the lightest if you
+          want to avoid running Neo4j.
+        </p>
+
+        <h4>How it slots into the three-tier model</h4>
+        <ul>
+          <li><strong>Working context</strong> — your loop owns it; no library.</li>
+          <li><strong>Session memory</strong> — append-only log per session in Postgres. Also write each utterance as an <em>episode</em> into Graphiti, which derives entities/edges asynchronously.</li>
+          <li><strong>Persistent memory</strong> — two parallel reads on every turn: Graphiti query for typed facts with validity windows (filter <code>valid_to IS NULL</code> for &ldquo;currently true&rdquo;) <em>plus</em> Qdrant hybrid query over a <code>chunks</code> collection where payload carries <code>session_id</code>, <code>source_uri</code>, <code>speaker</code>, <code>stated_at</code>, <code>superseded_by</code>. Fuse candidates, rerank top ~50 with bge-v2-m3, take top ~8 into the prompt.</li>
+        </ul>
+
+        <p>
+          Staleness becomes first-class: if a recalled fact's <code>valid_from</code> is &gt;N months old and its category is
+          volatile (deadlines, statuses, preferences), the harness prepends <code>[STALE: last confirmed YYYY-MM-DD]</code> before
+          handing the chunk to the model. Graphiti gives you the timestamps; the harness owns the staleness policy.
+        </p>
+      </div>
+
+      <div class="unsolved">
+        <div class="u-label">Still unsolved</div>
+        <p>
+          <strong>Cross-modal memory.</strong> Graphiti and mem0 are both text-first. A meeting transcript with embedded slides, a Slack thread with screenshots, a doc with tables — none of these have a clean memory schema. You'll model multimodal nodes yourself.
+        </p>
+      </div>
+
+      <div class="src-list">
+        <span class="src-label">Sources</span>
+        <a href="https://github.com/getzep/graphiti">Graphiti</a>
+        <a href="https://arxiv.org/abs/2501.13956">Zep paper (arXiv 2501.13956)</a>
+        <a href="https://github.com/mem0ai/mem0">mem0</a>
+        <a href="https://mem0.ai/blog/state-of-ai-agent-memory-2026">State of Agent Memory 2026</a>
+        <a href="https://github.com/letta-ai/letta">Letta</a>
+        <a href="https://qdrant.tech/blog/pgvector-tradeoffs/">pgvector tradeoffs</a>
+        <a href="https://github.com/AnswerDotAI/rerankers">rerankers</a>
+        <a href="https://zeroentropy.dev/articles/open-source-alternatives-to-cohere-rerank/">OSS rerank alternatives</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP 2: WORKFLOWS -->
+<section class="bay tight" id="workflows">
+  <div class="container">
+    <div class="deep">
+      <div class="deep-header">
+        <div>
+          <div class="deep-eyebrow"><span class="num">GAP 02</span>DURABLE EXECUTION · PROACTIVE LOOPS · HITL</div>
+          <h2>Reactive loops are the wrong primitive.</h2>
+        </div>
+        <span class="deep-tag existing">Design report</span>
+      </div>
+      <p class="lede">
+        The five coding harnesses are all reactive: user prompts, agent runs, agent stops. Knowledge work needs <strong>proactive</strong> —
+        wake on a schedule, wake on a webhook, suspend for days awaiting an approval, retry idempotently, fail under a budget cap. None
+        of that lives inside an agent SDK. It lives in a durable execution engine sitting underneath one.
+      </p>
+
+      <div class="recommend">
+        <div class="r-label">Recommendation</div>
+        <div class="r-body">
+          <strong>Restate</strong> (Apache 2.0, single Rust binary). The <em>awakeable</em> primitive is the cleanest HITL token in any
+          durable engine — the agent creates one, hands the ID to an email/Slack/webhook, durably suspends, and resumes when something
+          resolves or rejects. Skip <strong>Inngest</strong> (SSPL is hostile to embeddable harnesses), skip <strong>Temporal</strong>
+          (overkill unless you're already running it), skip the LangGraph server (Elastic-licensed trap). DBOS is the runner-up if you're
+          fully Postgres-coupled.
+        </div>
+      </div>
+
+      <div class="contend-wrap">
+        <table class="contend">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>License</th>
+              <th>HITL primitive</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="winner">
+              <td class="name">Restate<span class="sub">v1.13 SDK · single Rust binary</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td><strong>Awakeables</strong> — first-class durable task tokens for HITL pauses</td>
+              <td><span class="verdict pick">PRIMARY</span></td>
+            </tr>
+            <tr>
+              <td class="name">DBOS<span class="sub">dbos-transact-py 2.22</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Durable notifications + <code>@scheduled</code> cron; ~7 LoC integration</td>
+              <td><span class="verdict alt">PG-NATIVE ALT</span></td>
+            </tr>
+            <tr>
+              <td class="name">Temporal<span class="sub">3,000+ paying customers · $5B val</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Signals + <code>wait_condition</code>; mature but heavy</td>
+              <td><span class="verdict alt">IF ALREADY ON IT</span></td>
+            </tr>
+            <tr>
+              <td class="name">Hatchet<span class="sub">Postgres + RabbitMQ</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Durable pause/resume + cron + concurrency keys</td>
+              <td><span class="verdict alt">SOLID 2ND TIER</span></td>
+            </tr>
+            <tr>
+              <td class="name">Trigger.dev v4<span class="sub">v4.4.6 · official Helm</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Waitpoints for HITL; durable cron up to a year</td>
+              <td><span class="verdict alt">VIABLE</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">Inngest<span class="sub">server SSPL-licensed</span></td>
+              <td><span class="lic bad">SSPL</span></td>
+              <td>Excellent product, wrong license — bars in-product offering</td>
+              <td><span class="verdict skip">LICENSE TRAP</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">LangGraph (server)<span class="sub">framework MIT, server Elastic 2.0</span></td>
+              <td><span class="lic warn">Elastic 2.0</span></td>
+              <td>Server features (cron, persistence, API, queues) require commercial key</td>
+              <td><span class="verdict skip">LICENSE TRAP</span></td>
+            </tr>
+            <tr>
+              <td class="name">Vercel WDK<span class="sub">vercel/workflow v4.2.5</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Genuinely OSS, sleep months, AI-SDK integrated — cron still in discussion</td>
+              <td><span class="verdict watch">RE-EVAL Q4</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">AutoGen<span class="sub">v0.7.5 · Sept 2025</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Microsoft put in maintenance, recommends Agent Framework instead</td>
+              <td><span class="verdict skip">MAINTENANCE MODE</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="body">
+        <p>
+          The honest reason to skip Temporal for a <em>new</em> knowledge-work harness: it requires you to rearchitect the app
+          around Workflow/Activity boundaries, run a separate cluster (or pay Temporal Cloud), and write &gt;100 LoC of integration
+          where DBOS needs ~7. For a coding-agent harness team at FAANG scale, sure. For a knowledge-work harness that needs to
+          ship and be self-hostable by users, it's overkill.
+        </p>
+        <p>
+          Restate wins because the awakeable model maps directly to the dominant HITL pattern in knowledge work: <em>&ldquo;ask the user
+          to confirm before sending; wait indefinitely.&rdquo;</em> The agent creates an awakeable, hands the ID to whatever surface
+          will collect the answer (a Slack DM, a web modal, an email), suspends the workflow, and resumes — same place, same state — when
+          someone resolves the token. No polling. No process kept alive. Days of waiting cost zero compute.
+        </p>
+
+        <h4>What the engine doesn't give you (build these)</h4>
+        <ul>
+          <li><strong>Per-loop budget ceiling.</strong> Wrap every LLM/tool call in a <code>BudgetTracker</code> keyed by loop-id; on overage, durably suspend and signal a human. 2026 consensus: hard caps for free tier, soft caps with model-downshift (Opus → Haiku) for paid.</li>
+          <li><strong>Side-effecting idempotency.</strong> Durable execution gives exactly-once <em>step</em> semantics, but only for steps the engine knows about. The instant your agent sends an email, the engine can't unsend it. Write-through idempotency cache keyed by <code>(loop_id, tool_name, content_hash)</code> inside every side-effecting tool, plus an LLM-level &ldquo;did I already do this&rdquo; check.</li>
+          <li><strong>Goal-updating semantics.</strong> The agent's stated objective evolves over weeks. Model goals as a separate versioned entity (one row per revision), pass <code>(goal_v_n, evidence_so_far)</code> into each wake, and treat agent-proposed goal changes as HITL approvals via awakeable.</li>
+          <li><strong>Wake-up scheduling beyond cron.</strong> Webhook ingestion translates external events into awakeables; polling workflows need the same budget and idempotency treatment, because an uncapped poller is exactly the $400-overnight failure mode.</li>
+        </ul>
+      </div>
+
+      <div class="unsolved">
+        <div class="u-label">Still unsolved</div>
+        <p>
+          <strong>Goal coherence under indefinite suspension.</strong> A workflow paused 14 days for human approval may resume into a world
+          where the goal has shifted, the data has aged, the user's preferences changed. No engine handles this — you'll write a re-grounding
+          step that runs on every resume.
+        </p>
+      </div>
+
+      <div class="src-list">
+        <span class="src-label">Sources</span>
+        <a href="https://github.com/restatedev/restate">Restate</a>
+        <a href="https://docs.restate.dev/develop/ts/awakeables/">Restate awakeables</a>
+        <a href="https://github.com/dbos-inc/dbos-transact-py">DBOS</a>
+        <a href="https://thenewstack.io/temporal-durable-execution-ai-workflows/">Temporal scale</a>
+        <a href="https://github.com/hatchet-dev/hatchet">Hatchet</a>
+        <a href="https://rvernica.github.io/2026/03/langchain-license">LangGraph licensing</a>
+        <a href="https://github.com/vercel/workflow">Vercel WDK</a>
+        <a href="https://www.digitalapplied.com/blog/agent-token-budget-calculator-cost-control-framework-2026">Budget control framework</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP 3: PROVENANCE -->
+<section class="bay tight" id="provenance">
+  <div class="container">
+    <div class="deep">
+      <div class="deep-header">
+        <div>
+          <div class="deep-eyebrow"><span class="num">GAP 03</span>CITATIONS · LINEAGE · MULTI-HOP SURVIVAL</div>
+          <h2>Provenance has to survive the second summarization.</h2>
+        </div>
+        <span class="deep-tag existing">Design report</span>
+      </div>
+      <p class="lede">
+        Every popular framework treats citation as a property of the <em>final answer</em>, not a property that propagates. Summarize
+        a summary and every one of them breaks. This is the cleanest hole in the OSS landscape: <strong>multi-hop synthesis provenance
+        is genuinely unsolved</strong>. The grounding-API and structured-output pieces exist; the lineage layer doesn't.
+      </p>
+
+      <div class="recommend">
+        <div class="r-label">Recommendation</div>
+        <div class="r-body">
+          Composite stack with no single owner. <strong>Anthropic Citations API</strong> (or Cohere Command R+ fallback) at the grounding
+          layer. <strong>Instructor's <code>CitationMixin</code></strong> for typed citation enforcement at every synthesis step — its
+          Pydantic validator <em>verifies quoted strings actually exist in the source</em>. <strong>Vercel AI SDK <code>Sources</code> +
+          shadcn <code>ai/inline-citation</code></strong> for the UI rail and inline markers. The multi-hop lineage DAG you'll model
+          yourself, taking <strong>Flowcept / PROV-O</strong> (MIT, research-grade) as the schema reference.
+        </div>
+      </div>
+
+      <div class="contend-wrap">
+        <table class="contend">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>Layer</th>
+              <th>Multi-hop survival</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="winner">
+              <td class="name">Anthropic Citations API<span class="sub">Jan 2025 · GA on Anthropic + Vertex</span></td>
+              <td>Model grounding</td>
+              <td>No (single-call), but structurally hard-enforced; Endex went 10% → 0% source hallucination</td>
+              <td><span class="verdict pick">GROUNDING</span></td>
+            </tr>
+            <tr>
+              <td class="name">Cohere RAG Citations<span class="sub">Command R / R+</span></td>
+              <td>Model grounding</td>
+              <td>No (single-call); &ldquo;fast&rdquo; / &ldquo;accurate&rdquo; modes</td>
+              <td><span class="verdict alt">FALLBACK</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Instructor <code>CitationMixin</code><span class="sub">jxnl/instructor</span></td>
+              <td>Schema enforcement</td>
+              <td><strong>Yes via composition</strong> — nest the mixin in every step's schema</td>
+              <td><span class="verdict pick">SCHEMA</span></td>
+            </tr>
+            <tr>
+              <td class="name">DSPy Signatures<span class="sub">stanfordnlp/dspy</span></td>
+              <td>Schema enforcement</td>
+              <td>Yes-ish — Citation as typed field through ChainOfThought modules; you build the module</td>
+              <td><span class="verdict alt">IF YOU LIKE DSPy</span></td>
+            </tr>
+            <tr>
+              <td class="name">BAML<span class="sub">BoundaryML</span></td>
+              <td>Schema enforcement</td>
+              <td>Argues <em>against</em> forced citation structure (their PDF citation feature is Bedrock-only)</td>
+              <td><span class="verdict skip">PHILOSOPHICAL MISMATCH</span></td>
+            </tr>
+            <tr>
+              <td class="name">LlamaIndex CitationQueryEngine</td>
+              <td>Retrieval framework</td>
+              <td>No — source numbering resets at synthesis hop</td>
+              <td><span class="verdict skip">SINGLE-HOP</span></td>
+            </tr>
+            <tr>
+              <td class="name">LangChain <code>RetrievalQAWithSourcesChain</code></td>
+              <td>Retrieval framework</td>
+              <td>No — deprecated since 0.1; MessagesState has no native citation type</td>
+              <td><span class="verdict skip">DEPRECATED</span></td>
+            </tr>
+            <tr>
+              <td class="name">R2R Deep Research<span class="sub">SciPhi-AI/R2R</span></td>
+              <td>Retrieval framework</td>
+              <td><strong>Partial</strong> — maintains evidence chain across steps; API-only UI</td>
+              <td><span class="verdict watch">BORROW ARCH</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Vercel AI SDK <code>Sources</code> + shadcn <code>ai/inline-citation</code></td>
+              <td>UI</td>
+              <td>N/A — best UI primitives with hover cards, carousels, streaming-aware</td>
+              <td><span class="verdict pick">UI</span></td>
+            </tr>
+            <tr>
+              <td class="name">Khoj · AnythingLLM · Perplexica · Morphic</td>
+              <td>UI</td>
+              <td>N/A — clickable sources; cross-hop ancestry view not shipped anywhere</td>
+              <td><span class="verdict alt">UX REFERENCE</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Flowcept + PROV-O<span class="sub">ORNL · arXiv 2509.13978</span></td>
+              <td>Lineage DAG</td>
+              <td><strong>Yes</strong> — multi-hop is the design goal; research-grade, schema is the reference</td>
+              <td><span class="verdict pick">DAG SCHEMA</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="body">
+        <p>
+          The architecture you'll end up building has four layers stacked: <em>grounding</em> (the model emits structurally-cited
+          tuples), <em>schema</em> (every agent step returns Pydantic with a <code>parent_citations: list[CitationRef]</code>
+          field, declaring which input citations each step consumed), <em>lineage DAG</em> (a PROV-O-shaped graph where retrieved
+          facts are <code>prov:Entity</code> nodes and synthesis steps are <code>prov:Activity</code> nodes), and <em>UI</em>
+          (rendered citation markers with cross-hop ancestry navigation). Three of the four are off-the-shelf; the lineage DAG is
+          ~200 lines of custom code modeled on Flowcept's schema.
+        </p>
+        <p>
+          The query &ldquo;what original entities support claim X&rdquo; becomes a DAG traversal that survives N synthesis hops.
+          Nobody ships this. Multiple 2025-2026 research papers (Wang et al. CHI 2026, ContraGen, DRAGged-into-Conflicts) confirm the
+          gap is real. <strong>This is where your harness gets to plant a flag</strong>.
+        </p>
+
+        <h4>The composition pattern in practice</h4>
+        <pre class="snippet"><code>class SynthesisStep(instructor.CitationMixin, BaseModel):
+    claim: str
+    quoted_evidence: list[str]   # validated to exist in source
+    parent_citations: list[CitationRef]  # which prior step's citations this depends on
+
+# At every hop, the schema forces you to declare lineage.
+# At read time, you DAG-traverse parent_citations back to the
+# original retrieval entities, surviving arbitrary synthesis depth.</code></pre>
+      </div>
+
+      <div class="unsolved">
+        <div class="u-label">Still unsolved</div>
+        <p>
+          <strong>Inter-source contradiction handling.</strong> ConflictRAG and Micro-Act (2025-2026 papers) identify knowledge conflict
+          between retrieved sources as the next frontier. No production OSS framework handles it. You'll build a contradiction-detector
+          on top of the lineage DAG and either surface conflicts to the user or route them to a critique sub-agent for resolution.
+        </p>
+      </div>
+
+      <div class="src-list">
+        <span class="src-label">Sources</span>
+        <a href="https://claude.com/blog/introducing-citations-api">Anthropic Citations API</a>
+        <a href="https://python.useinstructor.com/concepts/citation/">Instructor CitationMixin</a>
+        <a href="https://docs.cohere.com/docs/rag-citations">Cohere RAG citations</a>
+        <a href="https://github.com/SciPhi-AI/R2R">R2R</a>
+        <a href="https://ai-sdk.dev/elements/components/sources">AI SDK Sources</a>
+        <a href="https://www.shadcn.io/ai/inline-citation">shadcn inline-citation</a>
+        <a href="https://arxiv.org/html/2509.13978v2">Flowcept + PROV-O paper</a>
+        <a href="https://arxiv.org/pdf/2506.08500">DRAGged-into-Conflicts</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP 4: DRAFTS -->
+<section class="bay tight" id="drafts">
+  <div class="container">
+    <div class="deep">
+      <div class="deep-header">
+        <div>
+          <div class="deep-eyebrow"><span class="num">GAP 04</span>DRAFTS · VERSIONS · CRITIQUE · ATTRIBUTION</div>
+          <h2>A draft is a Yjs document, not a chat message.</h2>
+        </div>
+        <span class="deep-tag existing">Design report</span>
+      </div>
+      <p class="lede">
+        The single most important architectural commitment for draft-refine: <strong>a draft is a CRDT document, not an entry in
+        message history</strong>. Versions are snapshots in that doc; &ldquo;send&rdquo; binds to a specific snapshot ID. Every other
+        piece of the system flows from this choice. The Yjs ecosystem is the only one mature enough to ship today, and Yjs 14 is
+        landing the attribution primitives that close the human-vs-agent gap.
+      </p>
+
+      <div class="recommend">
+        <div class="r-label">Recommendation</div>
+        <div class="r-body">
+          <strong>Yjs 14</strong> (changesets + attributions, landing in 2026) as the CRDT layer. <strong>BlockNote</strong> as the editor
+          (Notion-style block-based, already shipping the AI extension <code>@blocknote/xl-ai</code> with accept/reject suggestion UI);
+          <strong>TipTap</strong> as the escape hatch if you need deeper control. <strong>Hocuspocus</strong> for the sync server.
+          <strong>DSPy <code>Refine</code> v3</strong> for the critique loop, wired to span-anchored editing tools (the Electric.ax
+          &ldquo;agent as CRDT peer&rdquo; pattern). Yjs <code>encodeSnapshot</code> for versions; bind <code>send</code> to a specific
+          snapshot ID. Skip Loro and Automerge — both better in some ways, neither ecosystem-mature.
+        </div>
+      </div>
+
+      <div class="contend-wrap">
+        <table class="contend">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>License</th>
+              <th>Drafts as 1st-class + multi-author</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="winner">
+              <td class="name">Yjs 14 + BlockNote<span class="sub">FOSDEM 2026 demo</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Snapshots + changesets + attributions; BlockNote AI ships accept/reject</td>
+              <td><span class="verdict pick">PRIMARY</span></td>
+            </tr>
+            <tr>
+              <td class="name">TipTap + AI Toolkit<span class="sub">ueberdosis</span></td>
+              <td><span class="lic good">MIT + paid SaaS</span></td>
+              <td>Snapshot ext + autoversioning; AI edits in undo + version history</td>
+              <td><span class="verdict alt">ESCAPE HATCH</span></td>
+            </tr>
+            <tr>
+              <td class="name">Liveblocks AI Copilots</td>
+              <td><span class="lic bad">Paid SaaS</span></td>
+              <td>Best polished UX; <strong>collapses agent attribution into user's edits</strong></td>
+              <td><span class="verdict skip">SAAS + LOSES ATTRIB</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">Loro<span class="sub">Fugue algorithm</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Docs still say &ldquo;do not use in production&rdquo; for rich-text CRDT; no editor ecosystem yet</td>
+              <td><span class="verdict skip">PREMATURE</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">Automerge 2.2+</td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Works; no Yjs-class server, no awareness, smaller ecosystem</td>
+              <td><span class="verdict skip">ECOSYSTEM GAP</span></td>
+            </tr>
+            <tr>
+              <td class="name">Lexical<span class="sub">facebook/lexical</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Yjs binding hardcodes root node — one editor per doc; collab is painful without Liveblocks</td>
+              <td><span class="verdict skip">DESIGN LIMITATION</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Hocuspocus<span class="sub">Yjs reference server</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Node-based, auth + persistence hooks, dead simple to extend</td>
+              <td><span class="verdict pick">SYNC SERVER</span></td>
+            </tr>
+            <tr>
+              <td class="name">Y-Sweet<span class="sub">Rust + S3-backed</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Better at Figma-scale fanout; overkill for harness v1</td>
+              <td><span class="verdict alt">IF YOU SCALE</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">DSPy <code>Refine</code> v3<span class="sub">stanfordnlp/dspy</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Hard + soft constraints, granular per-failure feedback, rollout IDs</td>
+              <td><span class="verdict pick">CRITIQUE LOOP</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="body">
+        <p>
+          The reason to commit to Yjs despite Loro being technically superior on interleaving guarantees: <strong>Yjs 14's
+          changesets + attributions land in 2026</strong>, and BlockNote is actively driving the spec in collaboration with the
+          Yjs maintainer. That's the missing primitive for human-vs-agent attribution, and it's landing in the dominant ecosystem.
+          Revisit Loro in 2027.
+        </p>
+        <p>
+          The critique loop should follow the Electric.ax &ldquo;agent as CRDT peer&rdquo; pattern: critics don't regenerate the
+          document — they emit Yjs ops anchored to CRDT items via span-based tools (<code>search_text</code> returning stable
+          match handles, <code>place_cursor</code> with relative positions that survive concurrent edits,
+          <code>start_streaming_edit</code> for incremental insertion). DSPy <code>Refine</code> wraps the loop with rubric
+          enforcement; the editor shows pending agent edits with accept/reject affordances.
+        </p>
+
+        <h4>The version + send binding model</h4>
+        <pre class="snippet"><code>// Postgres
+draft (
+  id, yjs_doc_id,
+  current_snapshot_id,    // moves forward continuously
+  ratified_snapshot_id,   // bound when user clicks "Send"
+  ratified_at, ratified_by, ...
+)
+
+// On Send: capture Y.encodeSnapshot(doc), bind to send action,
+// require re-confirmation if current_snapshot_id != ratified_snapshot_id.
+// Same shape as a git tag — cheap, principled, auditable.</code></pre>
+      </div>
+
+      <div class="unsolved">
+        <div class="u-label">Still unsolved</div>
+        <p>
+          <strong>Semantic attribution of mixed-author content under refactoring.</strong> Yjs 14's attributions tell you who
+          originally inserted a <em>character</em>. When an agent rewrites a paragraph the human partially wrote, attribution either
+          shatters per-character or collapses to &ldquo;the rewriter.&rdquo; Multi-agent conflict resolution (two critics editing
+          overlapping spans) is also unhandled — the CRDT will happily merge into nonsense. No agent-aware merge policy exists in
+          OSS. This is the remaining 30% gap after Yjs 14 closes the first 70%.
+        </p>
+      </div>
+
+      <div class="src-list">
+        <span class="src-label">Sources</span>
+        <a href="https://github.com/yjs/yjs">Yjs</a>
+        <a href="https://www.blocknotejs.org/docs/features/ai">BlockNote AI</a>
+        <a href="https://fosdem.org/2026/schedule/event/8VKQXR-blocknote-yjs-prosemirror/">FOSDEM 2026 talk</a>
+        <a href="https://electric.ax/blog/2026/04/08/ai-agents-as-crdt-peers-with-yjs">Agent as CRDT peer</a>
+        <a href="https://dspy.ai/api/modules/Refine/">DSPy Refine</a>
+        <a href="https://tiptap.dev/blog/release-notes/announcing-ai-toolkit">TipTap AI Toolkit</a>
+        <a href="https://arxiv.org/abs/2509.11826">CHI 2026 multi-author study</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP 5: OBSERVABILITY -->
+<section class="bay tight" id="observability">
+  <div class="container">
+    <div class="deep">
+      <div class="deep-header">
+        <div>
+          <div class="deep-eyebrow"><span class="num">GAP 05</span>OBSERVABILITY · EVAL · ANNOTATION</div>
+          <h2>The compiler isn't going to save you, so instrument everything.</h2>
+        </div>
+        <span class="deep-tag new">New gap</span>
+      </div>
+      <p class="lede">
+        The verification asymmetry from the design report has a direct consequence the original missed: <strong>without ground truth,
+        you cannot ship without comprehensive eval and observability</strong>. Coding harnesses get away with thin telemetry because
+        the tests are the eval. Knowledge work has nothing equivalent — instrument every step, run online evals against sampled
+        production traffic, and budget for a continuous annotation surface for domain experts.
+      </p>
+
+      <div class="recommend">
+        <div class="r-label">Recommendation</div>
+        <div class="r-body">
+          <strong>Langfuse</strong> (MIT, MIT-retained post-ClickHouse acquisition) as the primary tracer + storage. <strong>Langfuse's
+          built-in evals + DeepEval</strong> for online sampled scoring. <strong>Inspect AI</strong> (UK AISI) for offline
+          agent-trajectory regression. <strong>promptfoo</strong> for prompt CI on every PR. <strong>Argilla</strong> for dataset
+          curation. Emit pure <strong>OpenTelemetry GenAI</strong> semantic conventions as the wire protocol — that way Langfuse,
+          Phoenix, OpenLIT, or any OTel backend can all consume the same traces. Skip Phoenix (Elastic 2.0), Helicone (maintenance),
+          AgentOps (stagnant since Aug 2025).
+        </div>
+      </div>
+
+      <div class="contend-wrap">
+        <table class="contend">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>License</th>
+              <th>Agent-native span semantics</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="winner">
+              <td class="name">Langfuse<span class="sub">27.8k★ · ClickHouse-acquired Jan 2026</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Sessions, traces, observations, generations, tool spans; nested sub-agents</td>
+              <td><span class="verdict pick">PRIMARY</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">Arize Phoenix<span class="sub">9.8k★ · OTel-native</span></td>
+              <td><span class="lic bad">Elastic 2.0</span></td>
+              <td>Genuinely excellent, cleaner eval; ELv2 bars hosted/managed offerings</td>
+              <td><span class="verdict skip">LICENSE FOR MT</span></td>
+            </tr>
+            <tr>
+              <td class="name">OpenLLMetry / Traceloop</td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>The instrumentation library — use to <em>emit</em>, not as backend</td>
+              <td><span class="verdict pick">EMITTER</span></td>
+            </tr>
+            <tr>
+              <td class="name">OpenLIT<span class="sub">openlit · 2.5k★</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Most OTel-pure fully-OSS backend; 11 LLM-judge eval types; smaller community</td>
+              <td><span class="verdict alt">PLAN B</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">Helicone</td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Maintenance mode since March 3, 2026</td>
+              <td><span class="verdict skip">EOL</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">AgentOps</td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Best replay UX once, but last commit Aug 2025</td>
+              <td><span class="verdict skip">STAGNANT</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Inspect AI<span class="sub">UK AISI</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>First-class agent primitives (Task → Solver → Scorer), multi-turn, sandboxed tools</td>
+              <td><span class="verdict pick">OFFLINE EVAL</span></td>
+            </tr>
+            <tr>
+              <td class="name">DeepEval<span class="sub">15.3k★</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>14+ built-in metrics, pytest-native, hallucination/bias/faithfulness/contextual relevancy</td>
+              <td><span class="verdict pick">ONLINE EVAL</span></td>
+            </tr>
+            <tr>
+              <td class="name">promptfoo<span class="sub">21.5k★</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Fast prompt-level CI + red-teaming; weaker on multi-step</td>
+              <td><span class="verdict pick">CI GATES</span></td>
+            </tr>
+            <tr>
+              <td class="name">Argilla<span class="sub">Hugging Face</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Best-in-class dataset curation; expert labeling workflows</td>
+              <td><span class="verdict pick">ANNOTATION</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="body">
+        <p>
+          The two-surface eval pattern matters in 2026: <strong>online sampled</strong> in Langfuse (LLM-judge against 1-5% of
+          traces, flagging drift) <em>plus</em> <strong>offline regression</strong> in Inspect AI (golden trajectory replays in
+          CI). promptfoo runs the cheap prompt-level CI gate on every PR. The three are complementary, not redundant.
+        </p>
+        <p>
+          The OpenTelemetry GenAI semantic conventions exited experimental for client spans in early 2026 and are stable in
+          practice for agent spans (<code>create_agent</code>, <code>invoke_agent</code>, <code>execute_tool</code>). Emitting OTel
+          from the harness via OpenLLMetry gets you portability for free — you can swap Langfuse for OpenLIT or any OTel backend
+          without rewriting instrumentation.
+        </p>
+
+        <h4>The annotation surface — build a custom UI</h4>
+        <p>
+          The reviewer for a knowledge-work harness is a paralegal, an analyst, an executive assistant — not a Python engineer.
+          Langfuse's built-in queue UI assumes the latter. Build a thin custom UI on top of Langfuse's scores API where the reviewer
+          sees only the rendered final artifact + 3-5 rubric questions, no spans, no tokens. Langfuse themselves published the
+          pattern in November 2025.
+        </p>
+      </div>
+
+      <div class="unsolved">
+        <div class="u-label">Still unsolved</div>
+        <p>
+          <strong>Evaluating non-verifiable outputs (&ldquo;is this draft worth the user's time to edit&rdquo;)</strong> is genuinely
+          hard. Off-the-shelf evals score generic axes — faithfulness, hallucination, toxicity. None evaluate writing voice, contextual
+          tone-fit, or strategic intent. You'll build domain rubrics, validate them against human grading regularly (judge drift is
+          real), and probably maintain a small panel whose agreement rate IS your eval ground truth. Also unsolved: counterfactual
+          replay across trajectories where prompt changes mutate tool calls.
+        </p>
+      </div>
+
+      <div class="src-list">
+        <span class="src-label">Sources</span>
+        <a href="https://github.com/langfuse/langfuse">Langfuse</a>
+        <a href="https://langfuse.com/blog/2025-11-25-vibe-coding-custom-annotation-ui">Custom annotation UI pattern</a>
+        <a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/">OTel GenAI semconv</a>
+        <a href="https://inspect.aisi.org.uk/">Inspect AI</a>
+        <a href="https://github.com/confident-ai/deepeval">DeepEval</a>
+        <a href="https://github.com/promptfoo/promptfoo">promptfoo</a>
+        <a href="https://github.com/argilla-io/argilla">Argilla</a>
+        <a href="https://github.com/traceloop/openllmetry">OpenLLMetry</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP 6: DOCUMENTS -->
+<section class="bay tight" id="documents">
+  <div class="container">
+    <div class="deep">
+      <div class="deep-header">
+        <div>
+          <div class="deep-eyebrow"><span class="num">GAP 06</span>DOCUMENT · MULTIMODAL · AUDIO</div>
+          <h2>Knowledge work is PDF-shaped. The agent needs to read it.</h2>
+        </div>
+        <span class="deep-tag new">New gap</span>
+      </div>
+      <p class="lede">
+        Coding agents touch the filesystem and call it done. Knowledge work runs on board decks, contracts, research papers, SEC
+        filings, scanned forms, meeting audio, spreadsheets. The document-understanding stack is its own subsystem — and 2026 is the
+        first year permissively-licensed OSS has closed enough of the gap with commercial APIs to be the default.
+      </p>
+
+      <div class="recommend">
+        <div class="r-label">Recommendation</div>
+        <div class="r-body">
+          A <strong>tiered pipeline</strong>, not a single parser. <strong>Docling</strong> (Apache 2.0, IBM-backed, Linux Foundation
+          donation) as the primary: produces <code>DoclingDocument</code> with bbox provenance, native PPTX/DOCX/XLSX/PDF/HTML, hierarchical
+          chunker already wired for RAG, plus the Granite-Docling-258M VLM for the hard pages. <strong>PaddleOCR-VL 1.5</strong> (Apache 2.0)
+          on demand for scans and skewed photos — beats GPT-4o on OmniDocBench at 0.9B parameters. <strong>GMFT</strong> for table
+          rescue. <strong>ColQwen2.5</strong> for vision retrieval over figure-heavy corpora.
+          <strong>MarkItDown</strong> for office files where you don't care about layout. <strong>WhisperX</strong> for audio.
+          Skip Marker (GPL + cc-by-nc-sa-4.0 weights with $5M revenue waiver = time bomb), Unstructured.io OSS (intentionally
+          de-tuned), and PyMuPDF (AGPL).
+        </div>
+      </div>
+
+      <div class="contend-wrap">
+        <table class="contend">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>License</th>
+              <th>Role</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="winner">
+              <td class="name">Docling<span class="sub">~60k★ · Linux Foundation</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Primary parser; native multi-format; hierarchical chunker; LlamaIndex/LangChain/Haystack adapters</td>
+              <td><span class="verdict pick">PRIMARY</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">PaddleOCR-VL 1.5<span class="sub">#2 on OmniDocBench at 94.50</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Hard-page / scan fallback; 0.9B params; beats GPT-4o on docs</td>
+              <td><span class="verdict pick">HARD PAGES</span></td>
+            </tr>
+            <tr>
+              <td class="name">MinerU 2.5<span class="sub">opendatalab · Apr 2026 relicense</span></td>
+              <td><span class="lic good">Custom Apache-based</span></td>
+              <td>Tops OmniDocBench at 90.67; stronger on CJK; ~2x slower than Docling</td>
+              <td><span class="verdict alt">SWAPPABLE PRIMARY</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">GMFT<span class="sub">conjuncts · wraps TableTransformer</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Table specialist for when Docling/MinerU miss complex internal structure</td>
+              <td><span class="verdict pick">TABLE RESCUE</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">ColQwen2.5<span class="sub">illuin-tech</span></td>
+              <td><span class="lic good">Apache 2.0</span></td>
+              <td>Late-interaction page-image multivectors; top of ViDoRe V2; runs in parallel with text index</td>
+              <td><span class="verdict pick">VISUAL RETRIEVAL</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">MarkItDown<span class="sub">Microsoft</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Fast layout-agnostic markdown for office files and simple HTML/emails</td>
+              <td><span class="verdict pick">QUICK PATH</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">WhisperX<span class="sub">faster-whisper + pyannote</span></td>
+              <td><span class="lic good">BSD-4</span></td>
+              <td>Word-level timestamps, diarization, ~70x real-time on a 4090</td>
+              <td><span class="verdict pick">AUDIO</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">Marker<span class="sub">datalab-to/marker</span></td>
+              <td><span class="lic bad">GPL + cc-by-nc-sa-4.0</span></td>
+              <td>Quality is fine; license is hostile to commercial use above $5M revenue</td>
+              <td><span class="verdict skip">LICENSE TRAP</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">Unstructured.io OSS</td>
+              <td><span class="lic warn">Apache 2.0</span></td>
+              <td>Company explicitly &ldquo;not designed for production&rdquo; — pushed onto paid API</td>
+              <td><span class="verdict skip">INTENTIONALLY GIMPED</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">PyMuPDF<span class="sub">artifex</span></td>
+              <td><span class="lic bad">AGPL</span></td>
+              <td>Common mistake — commercial use requires PyMuPDF Pro</td>
+              <td><span class="verdict skip">AGPL CONTAMINATION</span></td>
+            </tr>
+            <tr class="skip">
+              <td class="name">Nougat<span class="sub">facebookresearch</span></td>
+              <td><span class="lic good">MIT</span></td>
+              <td>Academic-paper only; effectively unmaintained since 2024</td>
+              <td><span class="verdict skip">UNMAINTAINED</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="body">
+        <p>
+          Don't ship a single <code>read_document(path)</code> tool. Ship four discrete tools the agent can choose between by inspection:
+        </p>
+        <ul>
+          <li><strong><code>parse_structured(path)</code></strong> — Docling for the 80% case (born-digital PDFs, Office files)</li>
+          <li><strong><code>parse_with_ocr(path)</code></strong> — PaddleOCR-VL for the hard 20% (scans, photos, skewed pages)</li>
+          <li><strong><code>extract_tables(path, pages)</code></strong> — GMFT when the parser misses internal cell structure</li>
+          <li><strong><code>search_visually(query, corpus)</code></strong> — ColQwen2.5 for figure/chart/deck queries</li>
+          <li><strong><code>transcribe_audio(path)</code></strong> — WhisperX</li>
+        </ul>
+        <p>
+          Crucially: <strong>OmniDocBench scores the parsing model, not the pipeline</strong>. Docling isn't even on the leaderboard
+          (PaddleOCR-VL and MinerU top the OSS rankings). Docling's value is the <em>end-to-end</em> package — schema-stable
+          <code>DoclingDocument</code>, bbox provenance, hierarchical chunker, an OpenShift operator, native non-PDF formats. That's
+          the right shape for a harness; raw benchmark score isn't.
+        </p>
+
+        <h4>Cost reality (2026)</h4>
+        <p>
+          Self-hosted production GPU is real money ($2k–5k/month for redundant A100/L40S capacity). Commercial APIs (LandingAI, AWS
+          Textract) run $0.01–0.03/page. The crossover happens around 150k–300k pages/month — below that, paid APIs are cheaper than
+          running your own. Docling on a single L4 with Granite-Docling-258M lands around 1–2 pages/sec; a 200-page filing costs
+          ~$0.02–0.05 on Modal/RunPod.
+        </p>
+      </div>
+
+      <div class="unsolved">
+        <div class="u-label">Still unsolved</div>
+        <p>
+          <strong>Charts/diagrams as data, not images.</strong> Every parser extracts a chart bbox + caption; none reliably reconstruct
+          the underlying series. Vision-LLM approaches sit around ~70% accuracy. <strong>Slide decks with composed graphics,
+          financial filings with multi-page tables and inline footnotes, handwriting and whiteboard photos, form understanding</strong> —
+          all still need either human verification or paid commercial APIs. ColPali-style retrieval is the practical workaround for
+          decks: return the page image and let the agent's VLM reason.
+        </p>
+      </div>
+
+      <div class="src-list">
+        <span class="src-label">Sources</span>
+        <a href="https://github.com/docling-project/docling">Docling</a>
+        <a href="https://huggingface.co/ibm-granite/granite-docling-258M">Granite-Docling-258M</a>
+        <a href="https://www.codesota.com/ocr/benchmark/omnidocbench">OmniDocBench leaderboard</a>
+        <a href="https://github.com/opendatalab/MinerU">MinerU</a>
+        <a href="https://github.com/conjuncts/gmft">GMFT</a>
+        <a href="https://github.com/illuin-tech/colpali">ColPali/ColQwen</a>
+        <a href="https://github.com/m-bain/whisperX">WhisperX</a>
+        <a href="https://unstructured.io/blog/when-open-source-isnt-good-enough">Unstructured de-tuning</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP 7: MCP -->
+<section class="bay tight" id="mcp">
+  <div class="container">
+    <div class="deep">
+      <div class="deep-header">
+        <div>
+          <div class="deep-eyebrow"><span class="num">GAP 07</span>MCP · CONNECTIVITY · MULTI-TENANT OAUTH · TOOL SELECTION</div>
+          <h2>The problem isn't the protocol. It's the long tail.</h2>
+        </div>
+        <span class="deep-tag new">New gap</span>
+      </div>
+      <p class="lede">
+        Coding agents need ~10 tools. A knowledge worker's harness needs ~100, one per SaaS app the user touches. MCP solved the
+        protocol question. The remaining hard problems: long-tail SaaS coverage, multi-tenant OAuth with sane re-consent flows,
+        and not blowing the system prompt by stuffing 100 tool definitions into it.
+      </p>
+
+      <div class="recommend">
+        <div class="r-label">Recommendation</div>
+        <div class="r-body">
+          <strong>Nango</strong> (Elastic License, self-hosted) for the connectivity layer — 800+ APIs, real multi-tenant primitives,
+          sub-100ms overhead, sync+webhooks+tools in one. <strong>Code Mode</strong> (Anthropic/Cloudflare pattern) for tool exposure
+          to the agent — empirically 98.7% token reduction, 30-40% latency win, solves the &ldquo;300 tools in system prompt&rdquo; disaster cleanly.
+          Semantic tool retrieval as fallback for smaller models. <strong>FastMCP 3.x</strong> for first-party MCP server scaffolding.
+          <strong>Ory Hydra</strong> for the harness's own OAuth provider role; <strong>Obot</strong> or <strong>MCPJungle</strong> as a
+          self-hosted gateway for allowlisting, audit, and per-tenant scoping. Skip <strong>Composio</strong> as a primary (the SDKs are
+          OSS but the runtime is closed) — keep <strong>Pipedream Connect</strong> as fallback for apps Nango doesn't cover.
+        </div>
+      </div>
+
+      <div class="contend-wrap">
+        <table class="contend">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>Role</th>
+              <th>OSS reality</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="winner">
+              <td class="name">Nango<span class="sub">800+ APIs · self-hostable</span></td>
+              <td>Connectivity</td>
+              <td><span class="lic warn">Elastic License</span> — genuinely self-hostable, multi-tenant by design</td>
+              <td><span class="verdict pick">PRIMARY</span></td>
+            </tr>
+            <tr>
+              <td class="name">Composio<span class="sub">27.5k★ · 500+ apps</span></td>
+              <td>Connectivity</td>
+              <td>Repo is <em>SDKs only</em>; runtime is hosted closed-source SaaS</td>
+              <td><span class="verdict skip">SAAS LOCK</span></td>
+            </tr>
+            <tr>
+              <td class="name">Pipedream Connect<span class="sub">3,000+ apps · GA MCP</span></td>
+              <td>Connectivity</td>
+              <td>SaaS-only; Workday acquired Jan 2026</td>
+              <td><span class="verdict alt">LONG-TAIL FALLBACK</span></td>
+            </tr>
+            <tr>
+              <td class="name">Arcade.dev<span class="sub">~112 first-party</span></td>
+              <td>Connectivity</td>
+              <td>SDK OSS, runtime closed Docker binary, narrow coverage</td>
+              <td><span class="verdict skip">TOO NARROW</span></td>
+            </tr>
+            <tr>
+              <td class="name">Activepieces<span class="sub">628 pieces · MIT core</span></td>
+              <td>Workflow + integrations</td>
+              <td>Native MCP per piece; built for visual workflows, not agent tool-calling</td>
+              <td><span class="verdict alt">AUTOMATION LAYER</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Code Mode pattern<span class="sub">Anthropic + Cloudflare</span></td>
+              <td>Tool exposure</td>
+              <td>Single <code>run_typescript()</code> tool over generated SDK; 150k → 2k tokens</td>
+              <td><span class="verdict pick">TOOL SURFACE</span></td>
+            </tr>
+            <tr>
+              <td class="name">Semantic tool retrieval<span class="sub">arXiv 2603.20313</span></td>
+              <td>Tool exposure</td>
+              <td>Vector index top-K=3-5; 99% token reduction, ~97% hit@3</td>
+              <td><span class="verdict alt">FALLBACK FOR WEAK CODERS</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">FastMCP 3.x<span class="sub">Python · 97M monthly DL</span></td>
+              <td>Server scaffold</td>
+              <td>OAuth + OTel + composition built in; effectively the standard</td>
+              <td><span class="verdict pick">1ST-PARTY SERVERS</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Ory Hydra<span class="sub">OpenID-certified</span></td>
+              <td>OAuth provider</td>
+              <td>OpenAI runs it at scale; true multi-tenant via sub claim</td>
+              <td><span class="verdict pick">OAUTH</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Obot / MCPJungle<span class="sub">gateways</span></td>
+              <td>Gateway</td>
+              <td>Front upstream MCP servers for allowlist, audit, per-tenant scoping</td>
+              <td><span class="verdict pick">GOVERNANCE</span></td>
+            </tr>
+            <tr>
+              <td class="name">Smithery<span class="sub">7k-server registry</span></td>
+              <td>Registry</td>
+              <td>Useful for discovery; mostly low-quality community contributions — don't auto-install</td>
+              <td><span class="verdict alt">DISCOVERY ONLY</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="body">
+        <p>
+          The biggest architectural shift of 2025-2026 in this space: <strong>Code Mode kills the &ldquo;stuff every tool in the
+          system prompt&rdquo; pattern.</strong> Anthropic's Google Drive → Salesforce benchmark went 150k → 2k tokens with progressive
+          disclosure. Cloudflare's pattern is similar — one sandboxed TypeScript runtime over a generated SDK of all the agent's
+          tools. The whole inbox-triage scenario only works at this scale if the agent can write
+          <code>const urgent = await gmail.search('is:unread').filter(...); await Promise.all(urgent.map(m => linear.createIssue(...)))</code>
+          in one step rather than 30 round-trips.
+        </p>
+        <p>
+          The Code Mode pattern composes with semantic tool retrieval for smaller models that can't write code well: retrieve top
+          5 relevant tool definitions by query embedding, expose only those. Multiple gateways (Obot, lunar.dev, StackOne) ship the
+          retrieval layer off the shelf.
+        </p>
+
+        <h4>Security baseline</h4>
+        <p>
+          The MCP spec still lacks cryptographic auth between client and server (per the 2026 threat-modeling literature). Tool
+          poisoning hits 60-72% success against unmitigated agents on the MCPTox benchmark. Assume hostile tool descriptions;
+          allowlist aggressively at the gateway. For a multi-tenant harness, this is non-negotiable.
+        </p>
+      </div>
+
+      <div class="unsolved">
+        <div class="u-label">Still unsolved</div>
+        <p>
+          <strong>OAuth scope-upgrade UX.</strong> User originally granted <code>gmail.readonly</code>; agent now needs <code>gmail.send</code>.
+          No OSS tool handles the re-consent flow gracefully. <strong>Per-tenant dynamic tool catalogs</strong> driven by user's actually-connected
+          apps — gateways give you static allowlists, not dynamic per-user. <strong>End-to-end cryptographic audit trails</strong> from
+          chat turn → tool call → upstream API. These are where your harness differentiates; everything else is plumbing.
+        </p>
+      </div>
+
+      <div class="src-list">
+        <span class="src-label">Sources</span>
+        <a href="https://github.com/NangoHQ/nango">Nango</a>
+        <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Anthropic Code Execution with MCP</a>
+        <a href="https://blog.cloudflare.com/code-mode-mcp/">Cloudflare Code Mode</a>
+        <a href="https://arxiv.org/abs/2603.20313">Semantic tool discovery</a>
+        <a href="https://github.com/ory/hydra">Ory Hydra</a>
+        <a href="https://obot.ai/">Obot</a>
+        <a href="https://github.com/mcpjungle/MCPJungle">MCPJungle</a>
+        <a href="https://www.practical-devsecops.com/mcp-security-vulnerabilities/">MCP security</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP 8: FRAMEWORKS -->
+<section class="bay tight" id="frameworks">
+  <div class="container">
+    <div class="deep">
+      <div class="deep-header">
+        <div>
+          <div class="deep-eyebrow"><span class="num">GAP 08</span>ORCHESTRATION FRAMEWORK · ENGINE</div>
+          <h2>Build the engine. Borrow three primitives.</h2>
+        </div>
+        <span class="deep-tag new">New gap</span>
+      </div>
+      <p class="lede">
+        Every framework wants to be your engine. The five studied coding harnesses — pi, Claude Code, codex, code_puppy, opencode —
+        all chose to roll their own. That bias is correct for knowledge work too. The harness <em>is</em> the product; if it's
+        someone else's StateGraph, the moat doesn't exist.
+      </p>
+
+      <div class="recommend">
+        <div class="r-label">Recommendation</div>
+        <div class="r-body">
+          <strong>Build your own queryLoop.</strong> Borrow exactly three things: <strong>Pydantic AI's</strong> typed Agent + Dependencies + Tools
+          shape (lift the patterns, optionally lift the package), <strong>Claude Agent SDK's</strong> hook lifecycle taxonomy
+          (<code>PreToolUse · PostToolUse · SubagentStart · SubagentStop · PreCompact · PermissionRequest · UserPromptSubmit</code>),
+          and <strong>BAML</strong> for all structured output (drafts, citations, synthesis schemas — Schema-Aligned Parsing is the
+          one piece that's genuinely worse to roll yourself). Outsource durability to the workflow engine from Gap 02 (Restate/DBOS).
+          Skip LangGraph wholesale adoption — its checkpointer is too coupled to StateGraph and optimizes for deterministic enterprise
+          compliance flows, the opposite of an LLM-driven agent loop.
+        </div>
+      </div>
+
+      <div class="contend-wrap">
+        <table class="contend">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>Programming model</th>
+              <th>What's worth borrowing</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="name">LangGraph<span class="sub">14k★ · LinkedIn/Klarna in prod</span></td>
+              <td>Adopt-wholesale StateGraph DSL</td>
+              <td><code>interrupt()</code> + <code>Command(resume=...)</code> HITL pattern; ~200 LoC to clone yourself</td>
+              <td><span class="verdict skip">DON'T ADOPT</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Pydantic AI<span class="sub">v1.87 · v1.87 deferred tools</span></td>
+              <td>Typed wrapper, lightest-touch Python</td>
+              <td>Agent + RunContext (DI) + Tools shape; externalizes durability cleanly</td>
+              <td><span class="verdict pick">BORROW PRIMITIVES</span></td>
+            </tr>
+            <tr>
+              <td class="name">Microsoft Agent Framework 1.0<span class="sub">April 2026 · merged AutoGen + SK</span></td>
+              <td>Enterprise consolidation</td>
+              <td>Full MCP + A2A; skip unless you're in an MS shop</td>
+              <td><span class="verdict skip">MS-COUPLED</span></td>
+            </tr>
+            <tr>
+              <td class="name">CrewAI<span class="sub">1.3M monthly PyPI</span></td>
+              <td>Role-based crews</td>
+              <td>Fast to prototype; opinionated in ways that resist knowledge-work patterns</td>
+              <td><span class="verdict skip">TOO OPINIONATED</span></td>
+            </tr>
+            <tr>
+              <td class="name">AutoGen / AG2</td>
+              <td>Conversational debate</td>
+              <td>AutoGen in maintenance; AG2 the MIT fork; academic abstractions</td>
+              <td><span class="verdict skip">FRAGMENTED</span></td>
+            </tr>
+            <tr>
+              <td class="name">LlamaIndex Workflows 1.0</td>
+              <td>Event-driven step composition</td>
+              <td>Strong for RAG-heavy; weak for free-form drafting; durability bring-your-own</td>
+              <td><span class="verdict alt">RAG-HEAVY OK</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">BAML<span class="sub">BoundaryML</span></td>
+              <td>DSL → typed clients in 7 langs</td>
+              <td>Schema-Aligned Parsing handles markdown-wrapped JSON, CoT-before-JSON, trailing commas</td>
+              <td><span class="verdict pick">USE FOR SCHEMAS</span></td>
+            </tr>
+            <tr>
+              <td class="name">DSPy<span class="sub">stanfordnlp</span></td>
+              <td>Programs not prompts; compilation</td>
+              <td>Brilliant for offline optimization of extraction pipelines; awkward for interactive harnesses</td>
+              <td><span class="verdict alt">OFFLINE PIPELINES</span></td>
+            </tr>
+            <tr>
+              <td class="name">Mastra<span class="sub">22k★ · TS · 300k weekly</span></td>
+              <td>TS-native; .then/.branch/.parallel DSL</td>
+              <td>If your harness is TypeScript, the strongest &ldquo;borrow primitives&rdquo; candidate</td>
+              <td><span class="verdict alt">TS EQUIVALENT</span></td>
+            </tr>
+            <tr class="winner">
+              <td class="name">Claude Agent SDK<span class="sub">Python + TS · v0.2.87</span></td>
+              <td>Heavy Claude coupling</td>
+              <td><strong>Hook lifecycle taxonomy</strong> + subagent primitive — borrow the vocabulary even if not the SDK</td>
+              <td><span class="verdict pick">HOOKS + SUBAGENTS</span></td>
+            </tr>
+            <tr>
+              <td class="name">fast-agent<span class="sub">MCP-native</span></td>
+              <td>Decorator API · Chain/Parallel/Router prebuilt</td>
+              <td>Router pattern is the closest OSS equivalent to opencode's variants</td>
+              <td><span class="verdict alt">VARIANTS REFERENCE</span></td>
+            </tr>
+            <tr>
+              <td class="name">OpenAI Agents SDK</td>
+              <td>Handoffs + guardrails</td>
+              <td>Typed handoffs are clean but lock you to OpenAI</td>
+              <td><span class="verdict skip">PROVIDER LOCK</span></td>
+            </tr>
+            <tr>
+              <td class="name">Agno (Phidata)<span class="sub">18k★ · ~2µs instantiation</span></td>
+              <td>Stateless, no-graphs Python</td>
+              <td>Best for high-fanout multi-tenant runtimes; primitives not unique</td>
+              <td><span class="verdict alt">SCALE OPTION</span></td>
+            </tr>
+            <tr>
+              <td class="name">Goose<span class="sub">Block → AAIF · Apache 2.0</span></td>
+              <td>Harness-as-product, Rust core</td>
+              <td>Aligned with your philosophy; too high-layer for primitive borrowing</td>
+              <td><span class="verdict alt">REFERENCE</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="body">
+        <p>
+          The LangChain consultants will tell you to adopt LangGraph wholesale — &ldquo;the integration surface is too large to roll
+          your own.&rdquo; That advice is right for enterprise teams shipping commodity refund-approval flows. It is wrong for a
+          knowledge-work harness where the harness <em>is</em> the differentiation. The LinkedIn/Klarna case studies prove LangGraph
+          works for deterministic compliance flows. They don't prove it's the right shape for a research-synthesis or drafting agent
+          — those are much closer to Claude Code's &ldquo;give the agent a workspace and let it iterate&rdquo; pattern.
+        </p>
+
+        <h4>The three borrows in concrete form</h4>
+        <ul>
+          <li><strong>Pydantic AI's shape</strong> — every Agent is typed in its dependencies (DI via <code>RunContext</code>) and outputs (Pydantic model). This is the cleanest typed-Python idiom and integrates with Temporal/DBOS/Restate for durability — exactly the boundary you want.</li>
+          <li><strong>Claude Agent SDK's hook vocabulary</strong> — the seven hook names are the right taxonomy. Knowledge work needs <code>PreCompact</code> (drafts get long) and <code>PermissionRequest</code> (send-email-as-me) especially badly. Use the names even if you don't use the SDK.</li>
+          <li><strong>BAML for structured output</strong> — for citation schemas, draft schemas, synthesis schemas. Run it as a parallel compile step. It outperforms Instructor and Mirascope on nested structures and smaller models, and Schema-Aligned Parsing handles the dirty reality of LLM output that strict JSON schemas can't.</li>
+        </ul>
+
+        <h4>For sub-agent variants — study three references, build your own</h4>
+        <p>
+          Variants are too central to the product to outsource. Study (1) opencode's two-method dispatch (<code>task()</code>
+          category vs <code>call_omo_agent()</code> direct), (2) Claude Code's worktree-isolated <code>Task</code> tool, (3)
+          fast-agent's Router pattern. Build something that fits your draft/research/critique/summarize variant model from the
+          design report.
+        </p>
+      </div>
+
+      <div class="unsolved">
+        <div class="u-label">Still unsolved</div>
+        <p>
+          <strong>A clean abstraction for the &ldquo;variant&rdquo; pattern across frameworks.</strong> Every harness reinvents
+          subagent dispatch. There's no agreed-upon primitive (handoffs vs subagents vs routers vs variants vs crews vs swarms vs
+          managed agents). For now: write your own, expect it to be the most opinionated, most-changing piece of your harness,
+          and don't try to make it general.
+        </p>
+      </div>
+
+      <div class="src-list">
+        <span class="src-label">Sources</span>
+        <a href="https://pydantic.dev/docs/ai/overview/">Pydantic AI</a>
+        <a href="https://code.claude.com/docs/en/agent-sdk/overview">Claude Agent SDK</a>
+        <a href="https://github.com/BoundaryML/baml">BAML</a>
+        <a href="https://www.langchain.com/blog/the-anatomy-of-an-agent-harness">Anatomy of an agent harness</a>
+        <a href="https://www.philschmid.de/agent-harness-2026">Importance of agent harness</a>
+        <a href="https://addyosmani.com/blog/agent-harness-engineering/">Agent harness engineering</a>
+        <a href="https://github.com/mastra-ai/mastra">Mastra</a>
+        <a href="https://opencode.ai/docs/agents/">OpenCode agents</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE INTEGRATED STACK -->
+<section class="bay" id="stack">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>The integrated stack</div>
+    <h2 class="section-title">Eight picks, one architecture.</h2>
+    <p class="section-lede">
+      Each gap pick stands alone, but they have to fit together. The diagram below is the assembled stack: <strong>green</strong> for
+      OSS picks consumed wholesale, <strong>cyan</strong> for OSS borrowed as primitives, <strong>purple</strong> for the layers the
+      harness still owns. The shape is consistent with the design report — Claude-Code-style queryLoop, pi-style JSONL persistence,
+      opencode-style variants — with the eight gap layers wired in.
+    </p>
+
+    <div class="stack">
+      <svg viewBox="0 0 1200 720" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="pickGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#10b981" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#10b981" stop-opacity="0.04"/>
+          </linearGradient>
+          <linearGradient id="customGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.16"/>
+            <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.04"/>
+          </linearGradient>
+          <linearGradient id="infoGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.16"/>
+            <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.04"/>
+          </linearGradient>
+        </defs>
+
+        <style>
+          .label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; fill: #6a6a72; }
+          .title { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 600; fill: #ededf0; }
+          .sub { font-family: 'Inter', sans-serif; font-size: 11px; fill: #a0a0a8; }
+          .layer { font-family: 'Fraunces', serif; font-size: 11px; font-weight: 500; fill: #6a6a72; letter-spacing: 0.04em; text-transform: uppercase; }
+          .pick-box { stroke: #10b981; stroke-width: 1; fill: url(#pickGrad); rx: 6; }
+          .custom-box { stroke: #a78bfa; stroke-width: 1; fill: url(#customGrad); rx: 6; }
+          .info-box { stroke: #22d3ee; stroke-width: 1; fill: url(#infoGrad); rx: 6; }
+          .flow { stroke: #2e2e38; stroke-width: 1; fill: none; }
+          .pillar { stroke: #1e1e25; stroke-width: 1; fill: #131317; rx: 8; }
+        </style>
+
+        <!-- Layer 1: Surfaces -->
+        <text x="10" y="34" class="layer">Surfaces</text>
+        <rect class="info-box" x="100" y="20" width="200" height="56"/>
+        <text x="200" y="42" text-anchor="middle" class="title">Web chat UI</text>
+        <text x="200" y="60" text-anchor="middle" class="sub">Vercel AI SDK · shadcn ai/*</text>
+
+        <rect class="info-box" x="320" y="20" width="200" height="56"/>
+        <text x="420" y="42" text-anchor="middle" class="title">Draft editor</text>
+        <text x="420" y="60" text-anchor="middle" class="sub">BlockNote + Yjs 14 + Hocuspocus</text>
+
+        <rect class="info-box" x="540" y="20" width="200" height="56"/>
+        <text x="640" y="42" text-anchor="middle" class="title">Annotation UI</text>
+        <text x="640" y="60" text-anchor="middle" class="sub">Custom on Langfuse scores API</text>
+
+        <rect class="info-box" x="760" y="20" width="200" height="56"/>
+        <text x="860" y="42" text-anchor="middle" class="title">External channels</text>
+        <text x="860" y="60" text-anchor="middle" class="sub">Slack · Email · Webhooks (HITL in)</text>
+
+        <rect class="info-box" x="980" y="20" width="200" height="56"/>
+        <text x="1080" y="42" text-anchor="middle" class="title">Cron / RSS / SEC</text>
+        <text x="1080" y="60" text-anchor="middle" class="sub">Proactive triggers</text>
+
+        <!-- Layer 2: Engine -->
+        <text x="10" y="120" class="layer">Engine (you build)</text>
+        <rect class="custom-box" x="100" y="100" width="1080" height="120"/>
+        <text x="640" y="130" text-anchor="middle" class="title">queryLoop — AsyncGenerator · steering + follow-up split · yield boundaries</text>
+        <text x="640" y="150" text-anchor="middle" class="sub">Borrow: Pydantic AI Agent shape · Claude Agent SDK hook taxonomy · opencode variant dispatch</text>
+
+        <rect class="custom-box" x="120" y="166" width="240" height="44"/>
+        <text x="240" y="190" text-anchor="middle" class="title">Variants</text>
+        <text x="240" y="204" text-anchor="middle" class="sub">primary · research · draft · critique · summarize</text>
+
+        <rect class="custom-box" x="380" y="166" width="240" height="44"/>
+        <text x="500" y="190" text-anchor="middle" class="title">Permissions</text>
+        <text x="500" y="204" text-anchor="middle" class="sub">4-class blast radius · once/always/reject</text>
+
+        <rect class="custom-box" x="640" y="166" width="240" height="44"/>
+        <text x="760" y="190" text-anchor="middle" class="title">Budget tracker</text>
+        <text x="760" y="204" text-anchor="middle" class="sub">per-loop ceiling · model-downshift on overage</text>
+
+        <rect class="custom-box" x="900" y="166" width="260" height="44"/>
+        <text x="1030" y="190" text-anchor="middle" class="title">Idempotency cache</text>
+        <text x="1030" y="204" text-anchor="middle" class="sub">(loop_id, tool, content_hash) → result</text>
+
+        <!-- Layer 3: Structured outputs + critique -->
+        <text x="10" y="266" class="layer">Schemas / critique</text>
+        <rect class="pick-box" x="100" y="246" width="320" height="56"/>
+        <text x="260" y="270" text-anchor="middle" class="title">BAML</text>
+        <text x="260" y="288" text-anchor="middle" class="sub">draft · citation · synthesis schemas</text>
+
+        <rect class="pick-box" x="440" y="246" width="320" height="56"/>
+        <text x="600" y="270" text-anchor="middle" class="title">Instructor CitationMixin</text>
+        <text x="600" y="288" text-anchor="middle" class="sub">quoted-text validation; parent_citations propagation</text>
+
+        <rect class="pick-box" x="780" y="246" width="380" height="56"/>
+        <text x="970" y="270" text-anchor="middle" class="title">DSPy Refine</text>
+        <text x="970" y="288" text-anchor="middle" class="sub">critique loop · hard + soft constraints · agent-as-CRDT-peer edits</text>
+
+        <!-- Layer 4: Memory + Provenance -->
+        <text x="10" y="346" class="layer">Memory + provenance</text>
+        <rect class="pick-box" x="100" y="326" width="220" height="56"/>
+        <text x="210" y="350" text-anchor="middle" class="title">Graphiti</text>
+        <text x="210" y="368" text-anchor="middle" class="sub">bi-temporal KG · supersession · staleness</text>
+
+        <rect class="pick-box" x="340" y="326" width="220" height="56"/>
+        <text x="450" y="350" text-anchor="middle" class="title">Qdrant + bge-v2-m3</text>
+        <text x="450" y="368" text-anchor="middle" class="sub">hybrid retrieval · rerank · payload provenance</text>
+
+        <rect class="pick-box" x="580" y="326" width="220" height="56"/>
+        <text x="690" y="350" text-anchor="middle" class="title">Anthropic Citations API</text>
+        <text x="690" y="368" text-anchor="middle" class="sub">structurally-cited grounding</text>
+
+        <rect class="custom-box" x="820" y="326" width="340" height="56"/>
+        <text x="990" y="350" text-anchor="middle" class="title">Lineage DAG (PROV-O-shaped)</text>
+        <text x="990" y="368" text-anchor="middle" class="sub">multi-hop synthesis survival · cross-hop ancestry view</text>
+
+        <!-- Layer 5: Tools + documents -->
+        <text x="10" y="426" class="layer">Tools + documents</text>
+        <rect class="pick-box" x="100" y="406" width="240" height="56"/>
+        <text x="220" y="430" text-anchor="middle" class="title">Nango + FastMCP</text>
+        <text x="220" y="448" text-anchor="middle" class="sub">SaaS connectivity · 1st-party MCP servers</text>
+
+        <rect class="pick-box" x="360" y="406" width="220" height="56"/>
+        <text x="470" y="430" text-anchor="middle" class="title">Code Mode</text>
+        <text x="470" y="448" text-anchor="middle" class="sub">single run_typescript tool · 98% token cut</text>
+
+        <rect class="pick-box" x="600" y="406" width="220" height="56"/>
+        <text x="710" y="430" text-anchor="middle" class="title">Obot gateway</text>
+        <text x="710" y="448" text-anchor="middle" class="sub">allowlist · audit · per-tenant scoping</text>
+
+        <rect class="pick-box" x="740" y="406" width="0" height="0"/>
+        <rect class="pick-box" x="840" y="406" width="320" height="56"/>
+        <text x="1000" y="430" text-anchor="middle" class="title">Docling · PaddleOCR-VL · GMFT · ColQwen · WhisperX</text>
+        <text x="1000" y="448" text-anchor="middle" class="sub">tiered document &amp; audio pipeline</text>
+
+        <!-- Layer 6: Durability + identity -->
+        <text x="10" y="506" class="layer">Durability + identity</text>
+        <rect class="pick-box" x="100" y="486" width="360" height="56"/>
+        <text x="280" y="510" text-anchor="middle" class="title">Restate</text>
+        <text x="280" y="528" text-anchor="middle" class="sub">durable workflows · awakeables · cron · webhooks</text>
+
+        <rect class="pick-box" x="480" y="486" width="360" height="56"/>
+        <text x="660" y="510" text-anchor="middle" class="title">Ory Hydra</text>
+        <text x="660" y="528" text-anchor="middle" class="sub">harness-as-OAuth-provider · multi-tenant</text>
+
+        <rect class="custom-box" x="860" y="486" width="300" height="56"/>
+        <text x="1010" y="510" text-anchor="middle" class="title">Goal entity (versioned)</text>
+        <text x="1010" y="528" text-anchor="middle" class="sub">HITL-gated mutations · re-ground on resume</text>
+
+        <!-- Layer 7: Persistence -->
+        <text x="10" y="586" class="layer">Persistence</text>
+        <rect class="custom-box" x="100" y="566" width="300" height="56"/>
+        <text x="250" y="590" text-anchor="middle" class="title">JSONL sessions (pi-style)</text>
+        <text x="250" y="608" text-anchor="middle" class="sub">append-only · parentId branching · forkable</text>
+
+        <rect class="custom-box" x="420" y="566" width="320" height="56"/>
+        <text x="580" y="590" text-anchor="middle" class="title">Artifacts view + drafts table</text>
+        <text x="580" y="608" text-anchor="middle" class="sub">derived from JSONL · Yjs snapshot binding</text>
+
+        <rect class="custom-box" x="760" y="566" width="400" height="56"/>
+        <text x="960" y="590" text-anchor="middle" class="title">Postgres</text>
+        <text x="960" y="608" text-anchor="middle" class="sub">drafts · goals · idempotency · DBOS if you go that route</text>
+
+        <!-- Layer 8: Observability -->
+        <text x="10" y="666" class="layer">Observability + eval</text>
+        <rect class="pick-box" x="100" y="646" width="260" height="56"/>
+        <text x="230" y="670" text-anchor="middle" class="title">Langfuse</text>
+        <text x="230" y="688" text-anchor="middle" class="sub">trace + scores · OTel-GenAI in</text>
+
+        <rect class="pick-box" x="380" y="646" width="240" height="56"/>
+        <text x="500" y="670" text-anchor="middle" class="title">DeepEval (online)</text>
+        <text x="500" y="688" text-anchor="middle" class="sub">sampled production scoring</text>
+
+        <rect class="pick-box" x="640" y="646" width="240" height="56"/>
+        <text x="760" y="670" text-anchor="middle" class="title">Inspect AI (offline)</text>
+        <text x="760" y="688" text-anchor="middle" class="sub">agent-trajectory regression</text>
+
+        <rect class="pick-box" x="900" y="646" width="260" height="56"/>
+        <text x="1030" y="670" text-anchor="middle" class="title">Argilla + promptfoo CI</text>
+        <text x="1030" y="688" text-anchor="middle" class="sub">datasets · PR gates</text>
+      </svg>
+      <div class="stack-legend">
+        <span class="lk pick">OSS adopted wholesale (the picks)</span>
+        <span class="lk custom">Harness owns (you build)</span>
+        <span class="lk info">Surfaces (UI + external)</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BUILD VS BORROW VS OUTSOURCE MATRIX -->
+<section class="bay" id="matrix">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>The buy / borrow / build call</div>
+    <h2 class="section-title">The clean separation between vendor surface, primitives, and your code.</h2>
+    <p class="section-lede">
+      The opinionated cut. Things to <strong>buy</strong> wholesale because the OSS is genuinely better than what you'd write. Things
+      to <strong>borrow</strong> as patterns or primitives without taking the whole framework. Things you must <strong>build</strong>
+      because no one has shipped them — and they're where the harness differentiates.
+    </p>
+
+    <div class="matrix">
+      <div class="col buy">
+        <div class="col-label">Buy · adopt wholesale</div>
+        <h3>Strong OSS picks you don't reinvent.</h3>
+        <p class="tagline">For each, the open-source option is better than what you would build in any reasonable time budget. Adopt the package; integrate via stable APIs.</p>
+        <ul>
+          <li>
+            <strong>Graphiti + Qdrant + bge-reranker-v2-m3</strong>
+            <span class="why">Bi-temporal KG + hybrid retrieval + rerank — three Apache 2.0 specialists at their layer</span>
+          </li>
+          <li>
+            <strong>Restate</strong>
+            <span class="why">Awakeables, single-binary durable execution; build the budget/idempotency wrappers on top</span>
+          </li>
+          <li>
+            <strong>Yjs 14 + BlockNote + Hocuspocus</strong>
+            <span class="why">CRDT, editor, sync server — entire collaborative drafting layer</span>
+          </li>
+          <li>
+            <strong>Langfuse + DeepEval + Inspect AI + Argilla + promptfoo</strong>
+            <span class="why">Full observability + eval stack; OTel GenAI as wire protocol for portability</span>
+          </li>
+          <li>
+            <strong>Docling + PaddleOCR-VL + GMFT + ColQwen2.5 + WhisperX</strong>
+            <span class="why">Tiered document &amp; audio pipeline; surface as discrete tools, not a monolith</span>
+          </li>
+          <li>
+            <strong>Nango + FastMCP + Ory Hydra + Obot</strong>
+            <span class="why">SaaS connectivity, 1st-party MCP scaffold, OAuth provider, gateway</span>
+          </li>
+          <li>
+            <strong>BAML + Instructor</strong>
+            <span class="why">Structured output + citation enforcement — both worth using together</span>
+          </li>
+          <li>
+            <strong>Anthropic Citations API (or Cohere R+)</strong>
+            <span class="why">Single-call grounding with structurally-cited tuples; rebrand as model-provider feature, not OSS, but consume it</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="col borrow">
+        <div class="col-label">Borrow · primitives only</div>
+        <h3>Patterns &amp; vocabulary from frameworks you don't adopt.</h3>
+        <p class="tagline">Read these projects' designs carefully and lift specific ideas. Importing the package would force trade-offs the harness shouldn't make.</p>
+        <ul>
+          <li>
+            <strong>Pydantic AI's Agent + Dependencies + Tools shape</strong>
+            <span class="why">Lightest-touch typed-Python agent idiom; either lift the patterns or use the package as a thin wrapper</span>
+          </li>
+          <li>
+            <strong>Claude Agent SDK's hook lifecycle taxonomy</strong>
+            <span class="why">PreToolUse · PostToolUse · SubagentStart · SubagentStop · PreCompact · PermissionRequest · UserPromptSubmit — use the names regardless</span>
+          </li>
+          <li>
+            <strong>LangGraph's interrupt() + Command(resume=...) HITL</strong>
+            <span class="why">The right shape for human-in-the-loop pause/resume; ~200 LoC to clone with your own checkpointer</span>
+          </li>
+          <li>
+            <strong>opencode's task() + call_omo_agent() variant dispatch</strong>
+            <span class="why">Two-method pattern: category-based dispatch vs direct invocation. Closest reference to what the design report's variant model needs</span>
+          </li>
+          <li>
+            <strong>Anthropic + Cloudflare Code Mode pattern</strong>
+            <span class="why">Single run_typescript() tool over generated SDK; 98% token reduction; build your own, don't depend on Cloudflare's</span>
+          </li>
+          <li>
+            <strong>Flowcept / PROV-O schema for lineage</strong>
+            <span class="why">Schema reference for the lineage DAG; the OSS implementation is research-grade, the schema is sound</span>
+          </li>
+          <li>
+            <strong>Electric.ax agent-as-CRDT-peer pattern</strong>
+            <span class="why">Critics emit Yjs ops anchored to CRDT items via span-based tools, not text-diff regeneration</span>
+          </li>
+          <li>
+            <strong>codex's reverse-replay session reconstruction</strong>
+            <span class="why">Scan backward to most recent compaction, apply selective forward events — efficient resume</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="col build">
+        <div class="col-label">Build · no one ships this</div>
+        <h3>The harness's actual differentiation.</h3>
+        <p class="tagline">Nothing in the OSS landscape solves these cleanly. These are the engineering bets that decide whether the harness is a chat interface or a colleague.</p>
+        <ul>
+          <li>
+            <strong>queryLoop — the AsyncGenerator engine</strong>
+            <span class="why">Steering vs follow-up split, yield boundaries, variant dispatch — borrow primitives, write the loop</span>
+          </li>
+          <li>
+            <strong>Multi-hop provenance lineage DAG + cross-hop ancestry UI</strong>
+            <span class="why">PROV-O-shaped graph, traversal queries, UI for &ldquo;trace this claim back to original sources&rdquo; — the cleanest hole in the field</span>
+          </li>
+          <li>
+            <strong>Three-tier memory orchestration policy</strong>
+            <span class="why">Graphiti gives the timestamps; the harness decides staleness policy, what's volatile vs durable, how to fuse with vector recall</span>
+          </li>
+          <li>
+            <strong>Per-loop budget tracker + model-downshift</strong>
+            <span class="why">Hard caps for free tier; soft caps with Opus → Haiku downshift; nothing OSS tracks token spend</span>
+          </li>
+          <li>
+            <strong>Side-effecting idempotency cache</strong>
+            <span class="why">(loop_id, tool, content_hash) keyed; durable engines give exactly-once steps, not exactly-once side effects</span>
+          </li>
+          <li>
+            <strong>Goal entity + re-grounding on resume</strong>
+            <span class="why">Versioned goal state; HITL-gated mutations; coherence check when workflow resumes after days</span>
+          </li>
+          <li>
+            <strong>Custom annotation UI for domain experts</strong>
+            <span class="why">Reviewer sees the artifact + 3-5 rubric questions, not spans/tokens. Build on Langfuse scores API</span>
+          </li>
+          <li>
+            <strong>Variant dispatch + per-variant prompts/permissions</strong>
+            <span class="why">research/draft/critique/summarize specialists. Too central to outsource; every harness reinvents it</span>
+          </li>
+          <li>
+            <strong>OAuth scope-upgrade flow</strong>
+            <span class="why">When agent needs gmail.send after originally getting gmail.readonly. No OSS gracefully handles re-consent</span>
+          </li>
+          <li>
+            <strong>Per-tenant dynamic tool catalogs</strong>
+            <span class="why">Gateways give static allowlists; tenant-specific catalogs driven by actual connected apps are DIY</span>
+          </li>
+          <li>
+            <strong>End-to-end cryptographic audit trail</strong>
+            <span class="why">Chat turn → tool call → upstream API with cryptographic linkage. Production-readiness bar for 2026</span>
+          </li>
+          <li>
+            <strong>Domain-specific eval rubrics + judge-drift monitoring</strong>
+            <span class="why">&ldquo;Is this a good draft&rdquo; isn't a generic eval. Maintain a small human grader panel; their agreement rate IS your ground truth</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT NOBODY HAS BUILT -->
+<section class="bay" id="unsolved">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">04</span>The grand list of open holes</div>
+    <h2 class="section-title">Twelve problems no OSS has shipped — and why each one matters.</h2>
+    <p class="section-lede">
+      The aggregated &ldquo;Still unsolved&rdquo; callouts from each gap section, plus a few that emerge only when you look across the
+      whole stack. If you are picking projects, pick the ones that overlap with these — that's where engineering hours convert to
+      product differentiation.
+    </p>
+
+    <div class="unsolved-grid">
+      <div class="ug">
+        <span class="ug-num">U01 · MEMORY</span>
+        <h4>Cross-modal memory</h4>
+        <p>Graphiti and mem0 are text-first. Meetings with embedded slides, threads with screenshots, docs with tables — no clean memory schema exists. Model multimodal nodes yourself.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U02 · WORKFLOWS</span>
+        <h4>Goal coherence under indefinite suspension</h4>
+        <p>A workflow paused 14 days for approval may resume into a world where the goal shifted, the data aged, the user's preferences changed. Re-grounding on every resume is DIY.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U03 · PROVENANCE</span>
+        <h4>Multi-hop synthesis survival</h4>
+        <p>Every popular framework treats citation as a property of the final answer, not something that propagates. Summarize a summary and they all break. This is the cleanest hole.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U04 · PROVENANCE</span>
+        <h4>Inter-source contradiction handling</h4>
+        <p>ConflictRAG and Micro-Act (2025-2026) identify retrieved-source conflict as the next frontier. No production OSS handles it. Build a detector on top of the lineage DAG.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U05 · DRAFTS</span>
+        <h4>Semantic attribution under refactoring</h4>
+        <p>Yjs 14's attributions tell you who inserted a character. When an agent rewrites a human paragraph, attribution either shatters per-character or collapses. Multi-agent conflict resolution on overlapping spans is also unhandled.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U06 · EVAL</span>
+        <h4>Evaluating non-verifiable outputs</h4>
+        <p>&ldquo;Is this draft worth the user's time to edit&rdquo; doesn't map to any generic eval axis. Build domain rubrics, validate against humans regularly, watch for judge drift.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U07 · EVAL</span>
+        <h4>Counterfactual trajectory replay</h4>
+        <p>Replay where changing the prompt changes which tools fire, which sub-agents spawn, which retrievals happen. Existing tools only replay single LLM calls, not whole agent trajectories.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U08 · DOCUMENTS</span>
+        <h4>Charts and diagrams as data</h4>
+        <p>Every parser extracts a chart bbox + caption; none reconstruct the underlying series reliably. Vision-LLM zero-shot sits at ~70% accuracy. Slide decks with composed graphics, financial filings with footnote chains, handwriting and whiteboards — all still need humans or paid commercial APIs.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U09 · TOOLS</span>
+        <h4>OAuth scope-upgrade UX</h4>
+        <p>User originally granted <code>gmail.readonly</code>; agent now needs <code>gmail.send</code>. No OSS handles the re-consent flow gracefully. Build it.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U10 · TOOLS</span>
+        <h4>Per-tenant dynamic tool catalogs</h4>
+        <p>Gateways give static allowlists. Tenant A wants Salesforce; B wants HubSpot. Per-tenant catalogs driven by actually-connected apps are DIY.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U11 · TOOLS</span>
+        <h4>End-to-end cryptographic audit trail</h4>
+        <p>Chat turn → tool call → upstream API with cryptographic linkage. The 2026 production-readiness bar. Nothing OSS ships it turnkey.</p>
+      </div>
+      <div class="ug">
+        <span class="ug-num">U12 · ENGINE</span>
+        <h4>A clean primitive for &ldquo;variants&rdquo;</h4>
+        <p>Every harness reinvents subagent dispatch. Handoffs vs subagents vs routers vs variants vs crews vs swarms — no agreed pattern. Write your own; expect it to be the most opinionated, fastest-changing piece.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section class="bay" id="closing">
+  <div class="container">
+    <div class="closing">
+      <h2>The skeleton is on the shelf. The opinions are still the product.</h2>
+      <p>
+        In May 2026 the OSS landscape for knowledge-work agent infrastructure is the most complete it has ever been.
+        <strong>Memory</strong> has finally been split into vector retrieval + bi-temporal graph + rerank, each layer with a clear best-in-class.
+        <strong>Durable execution</strong> has matured to the point that single-binary engines like Restate ship awakeables as a first-class HITL primitive.
+        <strong>Document understanding</strong> has closed the gap with commercial APIs on permissive licenses. <strong>Observability</strong> has
+        coalesced around OpenTelemetry GenAI conventions. <strong>Citation grounding</strong> exists at the model layer. <strong>CRDT-based
+        collaborative editing</strong> has the attribution primitive landing this year. <strong>MCP</strong> works and the Code Mode pattern solves
+        the tool-explosion problem cleanly.
+      </p>
+      <p>
+        What hasn't changed: <em>none of this assembles itself into a harness</em>. The eight gap layers integrate through code you write —
+        the queryLoop, the variant dispatch, the lineage DAG, the budget tracker, the goal entity, the OAuth scope-upgrade flow, the
+        domain eval rubrics, the cross-hop ancestry UI. That code is the product. The five coding harnesses studied in this repo were
+        right to write it themselves; a knowledge-work harness has even fewer reasons to outsource its core.
+      </p>
+      <p>
+        The deliverable from this report is simpler than it looks. <strong>Eight picks for the eight gaps.</strong> <strong>Three primitives
+        worth borrowing without adopting the framework.</strong> <strong>Twelve open holes</strong> that overlap precisely with the places
+        where engineering hours convert to defensible product. If you start tomorrow, you can be running the full stack against a
+        prototype harness inside a sprint. The harder bet is whether the twelve open holes are the ones <em>your</em> users will
+        actually care about — and that's a product question, not a tooling one.
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="container">
+    Companion to <a href="./knowledge-work-harness.html">Anatomy of a Knowledge-Work Agent Harness</a>
+    &nbsp;·&nbsp; and <a href="./harness-architectures.html">Anatomy of Five Coding Agent Harnesses</a>
+    &nbsp;·&nbsp; Solutions report · 2026
+  </div>
+</footer>
+
+</body>
+</html>
