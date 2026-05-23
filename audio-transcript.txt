@@ -1,0 +1,165 @@
+ANATOMY OF FIVE CODING AGENT HARNESSES
+A LISTENABLE REPORT
+
+Notes for narration in ElevenLabs:
+This transcript is broken into ten chapters with delimiter lines like "=====". Each chapter is under ten thousand characters, so it should fit in a single ElevenLabs generation. Paste one chapter at a time; do not include the delimiter lines or the chapter labels themselves in the narration — those are only for you to find the splits. Acronyms have been written out the first time they appear. Code, file paths, and command snippets have been translated into natural language. Total spoken length is roughly thirty minutes.
+
+=====
+CHAPTER ONE — WHY THIS REPORT EXISTS
+
+Every coding agent — every system that lets a large language model read files, run shell commands, and edit code on your behalf — has roughly the same outer ring. The model is asked something. It returns some text and, sometimes, requests to call tools. The harness runs those tools. The results go back to the model. And the cycle repeats until the model decides it is done.
+
+That outer ring is universal. It is also the least interesting part of an agent.
+
+What makes any given coding agent feel different — faster, safer, more transparent, more dangerous, more flexible — is the set of choices that get layered around that loop. How is the loop implemented? What does it expose to the outside world? How are tools registered and dispatched? When the context window starts to fill, who decides what to forget? Where does state live, and what survives a crash? And maybe most importantly: how is the agent prevented from doing harm, and how much human in the loop is required to keep it on the rails?
+
+Those are the choices that produce architecture. And those are the choices that diverge dramatically when you read across multiple coding agent codebases side by side.
+
+This report is a reading of five such codebases. They are all open source — or, in one case, an open reverse engineering of a closed-source system. They are: pi, codex, Claude Code, code puppy, and opencode. Each of them is a different bet about what matters most when you build an agent that writes code.
+
+Five codebases, the same outer ring, and almost no other architectural feature in common. Once we get past the introduction, this report goes dimension by dimension through what actually differs — the shape of the loop, the way tools are dispatched, the strategy for managing context, the model of permissions and sandboxing, the philosophy of delegation, the bets about state and providers — and the implications of each choice.
+
+By the end you should have a clear map of what is converging in this space, what is still wildly different from one project to the next, and what kind of agent harness you would build if you understood the trade-offs.
+
+=====
+CHAPTER TWO — THE FIVE HARNESSES
+
+Let me introduce them briefly.
+
+The first is pi. It is a TypeScript project from the Earendil Works group, and it is the smallest of the five — about five thousand lines of code in the core, split across four separate packages: one for talking to language models, one for the agent loop itself, one for terminal user interface rendering, and one for the actual coding agent command line that ties everything together.
+
+The defining feature of pi is what it refuses to do. It has no built-in support for the model context protocol — that is, the standard for plugging external tool servers into an agent — no built-in sub-agents, no built-in plan mode, no built-in permission popups. All of those exist, but they exist as extensions. Pi's bet is on a minimal core that composes well, not a batteries-included framework.
+
+The second is codex. This is OpenAI's project, and it is written mostly in Rust, with a thin TypeScript wrapper around it. Codex is the safety-first option in this lineup. It has dual approval modes, separating allowlist-based command approval from operating-system-level sandbox approval. It uses macOS Seatbelt and Linux Landlock to actually confine the processes it spawns. It was designed for a use case where a human is not always in the loop — running automation against untrusted code — and the architecture reflects that.
+
+The third is Claude Code. It is the agent that Anthropic ships with Claude, and the variant studied here is a reverse engineering of the production source available in a public collection. The defining feature of Claude Code is that its core loop is an asynchronous generator. Every meaningful state transition — a chunk of model output, a tool call running, a compaction kicking in, a turn ending — exits the loop as a yielded event. The user interface and any other observers see the agent's life as a stream they can iterate over without polling.
+
+The fourth is code puppy. It is a Python project written on top of an existing framework called Pydantic A I. So unlike the others, much of the underlying loop machinery is borrowed. What code puppy contributes is a plugin system with more than fifty named callback phases, a two-pass tool registration scheme that handles name collisions with external tool servers gracefully, and a streaming retry decorator that distinguishes transient API failures from real bugs.
+
+The fifth is opencode. This one is the most architecturally different of the bunch. It is a client-server system. The agent loop runs on the client side — which means it can be a command line, a terminal user interface, a web app, or a Slack bot — but the actual conversation history, tool execution, and message persistence all live server-side, accessed through a software development kit. The client decides whether tools are allowed to run, but it does not run them itself.
+
+Five different bets. Same outer ring. Five very different shapes once you get past that ring.
+
+=====
+CHAPTER THREE — THE LOOP
+
+The loop is the first place these systems diverge. Every harness has to solve the same problem — call the model, handle the response, run any tools, repeat — but the primitive each one chooses to express that loop with constrains everything downstream. Your debugging surface, your cancellation story, your concurrency model: all of these are determined by the loop primitive.
+
+Pi uses the most legible approach. It is just two nested while loops written in straightforward TypeScript. The inner loop drives a single turn — call the model, run any tools the model asked for, repeat until the model emits no more tool calls. The outer loop picks up follow-up messages the user may have queued while the agent was working, and continues the conversation automatically. Each significant state change emits an event on an event bus that the user interface and any observer can subscribe to. The loop body itself stays simple, and the tracing tool is the event bus, not the loop.
+
+Codex takes a more elaborate approach because it has to support concurrent turns and explicit cancellation. The core is a tokio async task running what is called a submission loop. It pulls submission messages off an async channel, pattern matches on the operation type — user input, settings change, approval response, stop signal, and so on — and dispatches to the right handler. When the operation is user input, it spawns a fresh task to run that turn, carrying an immutable per-turn context with about fifty fields in it: the model info, the approval policy, the permission profile, the shell environment policy, and more. Because the context is explicitly passed, not stored in a thread-local, two turns can run in parallel without ever aliasing state.
+
+Claude Code, as I mentioned, uses an async generator. The function is named query loop, and inside it is a single endless loop that yields at every interesting transition. It yields when a chunk of model output arrives. It yields when a tool runs. It yields when compaction starts and again when it finishes. It yields when the turn ends. The consumer of the agent — the user interface, but also any test or telemetry sink — can iterate over those yields and react to the agent's life in real time, without ever polling. Cancellation is trivial. Just stop iterating.
+
+Code puppy is interesting because its loop is mostly not its own. The framework underneath, Pydantic A I, provides the loop and the tool primitives. Code puppy adds infrastructure around it: a function that prunes interrupted tool calls from history, brings up the external tool servers, builds the underlying agent, invokes the streaming run, and wraps the whole thing in a retry decorator. That retry decorator is the distinctive piece. It matches on specific error substrings — rate limits, overloaded errors, stream interruptions, read timeouts — and re-enters the stream cleanly. Deterministic failures bubble up. Transient ones get retried.
+
+Opencode's loop is split across two machines. The client calls a function called prompt, which creates a message via the software development kit and then awaits an event signaling that message is complete. In between, permission-asked events arrive whenever the server wants to run a tool, and the client decides yes or no and sends approval back. The actual model call, the actual tool execution, the actual message persistence all happen server-side. The client is mostly user interface and consent.
+
+So already, at the level of the loop alone, you can see the personality of each system. Pi is simple and event-driven. Codex is concurrent and explicit. Claude Code is observable and stream-shaped. Code puppy borrows the loop but adds resilience. Opencode treats the loop as a contract between two systems, not a thing that runs in one place.
+
+=====
+CHAPTER FOUR — TOOL DISPATCH
+
+The next big choice is how tools get registered, dispatched, and run in parallel — and this turns out to gate safety, performance, and extensibility all at once.
+
+Pi takes the simplest approach. There is a static list of tools at boot, and each tool can optionally tag itself as parallel or sequential. By default, when the model asks to call multiple tools in one response, pi runs them all concurrently using a single promise-all call. If a tool tags itself sequential — typically something like a shell command, where you really want call number two to wait for call number one to finish — pi falls back to running them one at a time in order. Permission gates are not a built-in concept. They are implemented via two hooks: a before-tool-call hook and an after-tool-call hook. Want to add an allowlist? Wire a hook. Want to require user confirmation? Wire a hook. Want to redact tool output before sending it back to the model? Wire a hook. It is maximally flexible and zero defaults.
+
+Codex rebuilds its tool router every single turn. This is unusual. Each turn, the harness re-queries every connected external tool server for its latest tool inventory, re-evaluates which plugins are eligible against the current configuration, and assembles a new tool router from scratch. Tools that are waiting on OAuth or some other deferred authentication sit in a separate bucket so they do not get accidentally exposed to the model before they are ready. Parallelism is handled via a Rust primitive called futures-ordered, combined with tokio's select macro, which lets the harness multiplex tool execution against the still-streaming response. Doing it this way costs work per turn, but it means tool availability is always current — you cannot drift into a state where the agent thinks it has a tool that no longer exists.
+
+Claude Code does something genuinely clever. Each tool declares a function called is concurrency safe, which takes the parsed input and returns a boolean. When the model emits a batch of tool calls in one response, the dispatcher walks through them in order and greedily groups consecutive safe calls into a parallel batch. The moment a write-unsafe call appears, the current batch closes and the unsafe call runs by itself. After it, a new batch can start. The cap on parallelism is ten by default, configurable via environment variable. This hybrid design means reads scale — you can run grep against ten things at once — but writes never accidentally race.
+
+Code puppy uses a two-pass registration scheme to deal with name collisions between native tools and external tool servers. In the first pass, it builds a throwaway agent with no toolsets attached, just to inspect what native tool names exist. In the second pass, it loads the actual external tool servers, drops any whose names would collide with the natives, and rebuilds the real agent with the filtered set. This solves a problem that would otherwise require manual configuration every time a user added a new tool server.
+
+Opencode does not dispatch tools on the client at all. When the server's processor sees that the model wants to call a tool, it emits a permission-asked event. The client receives the event, decides whether to approve, and sends approve-tool or ignore-tool back. The server runs the tool, streams the result back in chunks, and updates a five-state machine on the tool call itself: pending, running, completed, error, or ignored. The advantage is that slow tools — code execution sandboxes, remote external service calls, long-running scripts — can run without freezing the user interface.
+
+=====
+CHAPTER FIVE — CONTEXT AND COMPACTION
+
+Context-window management is the part of agent engineering that does not get glamorized but matters enormously. Every long agent session eventually fills the window. The question is: who decides what to forget, when, and how visible is that to the user?
+
+Pi compacts by asking the language model itself to summarize the oldest messages, then writes a special compaction record to its session log. Here is the unusual part: it does not delete the original messages. They stay in the append-only log on disk. So a user can later branch off the pre-compaction state if they want to explore an alternate conversation. The disk grows, but the active context stays bounded.
+
+Codex compacts at three different trigger points, which is more aggressive than most systems. There is pre-sampling compaction, which fires before the language model call if the budget is already tight. There is mid-turn compaction, which fires when tokens exhaust during a streaming turn. And there is post-sampling compaction, which is a cleanup pass. To make this work without flapping, codex distinguishes server-observed prefill tokens — what the provider actually said it counted — from estimated tokens, which is the client's guess made before the server's count arrives. The server-observed value, when available, always wins.
+
+Claude Code has four named compaction strategies, in layers of escalating aggression. Autocompact summarizes old turns when the input gets too big. Microcompact shaves messages on output-token exhaustion, when the model is about to run out of room within a single turn. Snip trims oversized tool outputs — a giant grep result, say — before they bloat the history. And context collapse is the nuclear fallback: when everything else has failed, the whole conversation gets summarized into a single message. Every one of these emits a progress event so the user actually watches the prompt being engineered in real time. This is unusual. Most systems hide the act of compaction.
+
+Code puppy has a simpler approach: a summarize function with a protected token count for the most recent exchanges. Plugins can swap the strategy out entirely if they want something more sophisticated, but the default is straightforward.
+
+Opencode treats compaction as a first-class agent variant of its own. When the threshold trips, the parent agent literally calls the compaction variant as if it were any other tool, hands it the conversation, gets a summary back, and uses the software development kit to replace the old messages on the server. So the cost of summarization shows up in your normal token accounting, and you can swap in a different compaction agent the same way you would swap in a different model.
+
+The bigger question lurking under all of this is whether compaction should be a hidden optimization or a visible event. Pi and code puppy treat it as hidden — it just happens. Claude Code makes it visible, with progress events streaming to the user interface as it happens. Opencode goes further and makes compaction structurally indistinguishable from any other agent task. Which posture is right depends on whether you want your users to feel like they understand why the agent just forgot something, or whether you want them to never notice that something was forgotten at all.
+
+=====
+CHAPTER SIX — PERMISSIONS AND SANDBOXING
+
+This is the dimension that reveals what each project is most afraid of.
+
+Pi is at the permissive end. There is no built-in permission system. The before-tool-call hook receives every invocation, and the application embedding the harness decides what to do. The cost of this flexibility is that the default is wide open: if you forget to wire a permission hook, the agent will happily run anything the model asks. It is easy to ship something dangerous.
+
+Code puppy is similar — its permission story is its plugin hook system. There are callbacks for file permissions, for shell commands, for general pre-tool-call validation, and each can defer to external services for asynchronous approval. External tool servers run in their own processes, so process isolation is free, but kernel sandboxing is not.
+
+Opencode has a three-rule model per tool: once, always, or reject. "Once" caches the user's answer for the rest of the session. "Always" asks every time. "Reject" never even prompts. The effective rule is a three-way merge — user overrides take precedence, then variant defaults, then global defaults. Sub-agents run in subagent mode, which silently strips write tools. Defense in depth.
+
+Claude Code goes further. Tools declare a permission mode, one of four: default, accept-edits, bypass-permissions, or plan. Before any tool runs, a callback called can-use-tool fires, and the host application decides whether to prompt, auto-approve, or deny. Plan mode is structurally distinct from the others — in plan mode, the agent describes what it would do rather than actually doing it. That is useful when you want a human review pass before any write hits disk.
+
+Codex goes the furthest of all five. Its approval enum has a granular variant that completely separates rules approval — allowlist matching — from sandbox approval — operating-system-level confinement. A command can pass rules and still be confined. Or it can be exempt from sandbox but allowlisted. The sandbox enforcement is real: macOS Seatbelt profiles, Linux Landlock with seccomp rules. The sandbox runtime is selected by injecting environment variables at process spawn time, which keeps the policy selection cleanly separated from the actual enforcement.
+
+If you arranged these five on a spectrum from no built-in policy at one end to kernel-level confinement at the other, pi sits at the left, code puppy a bit to the right of it, opencode and Claude Code in the middle, and codex pushed all the way to the right. The more permissive end gives you maximum flexibility — you can express any policy you want — but at the cost that the default is permissive. The kernel end gives you genuine safety guarantees — you can run untrusted commands without supervision — but at the cost of substantial implementation work and per-operating-system maintenance.
+
+=====
+CHAPTER SEVEN — SUB-AGENTS
+
+The decision to support sub-agents at all is really a decision about state. Do sub-agents share the parent's context, which is cheap but leaky? Or do they get a fresh start, which is clean but means you pay tokens to re-onboard them? Do they inherit your permissions, which is convenient and dangerous? Or do they run constrained, which is safer but awkward?
+
+Pi makes no native decision. The core has no sub-agent primitive. If you want delegation, you wire it as a tool whose handler spins up its own loop. The framework's bet is that opinionated sub-agent semantics belong above the core, not in it.
+
+Codex has the most institutional sub-agent system. There is a registry per session that tracks every spawned child agent, enforces a depth limit via slot reservation, inherits the parent's approval and sandbox policies automatically, and gives each agent a human-readable nickname for logs. Inter-agent communication flows through the same event channel that user input flows through, so there is no separate concept to learn.
+
+Claude Code's Task tool spawns a brand new agent with isolated context. The parent passes a goal; the child runs to completion, cancellation, or timeout; and the final output is returned as the tool result. The child can be scoped to a subdirectory and to a sandbox mode. The token cost of isolation is real — the child has to re-read what it needs — but the benefit is enormous. The parent context stays small and focused. The child can explore aggressively, read fifty files, run a hundred grep commands, and none of that exploration pollutes the main conversation. This is why the Task tool is, in practice, the only realistic way to research a large codebase without context death.
+
+Code puppy implements sub-agents as subclasses of a base agent class. Each gets its own system prompt, its own tools, its own history, and a unique identity string so multiple agents can reference each other for coordination. Per-agent history prevents cross-leakage but means coordination happens by tool call, not by shared memory.
+
+Opencode implements sub-agents as variants in the same session. Build, plan, explore, scout, general, compaction. They all share the parent's session, append to the same message stream, inherit the same prompt cache. The trade-off compared to Claude Code is that shared session is token-efficient but exploration leaks into the main thread. The right call depends on whether your sub-agent's job is a delegated sub-problem you do not want to think about, or a coordinated workflow step you do.
+
+=====
+CHAPTER EIGHT — PROVIDERS AND PERSISTENCE
+
+Two adjacent decisions that together shape the agent's deployment story. Provider abstraction decides what you can swap. Persistence decides what survives a crash.
+
+Pi has a dedicated multi-provider package that normalizes Anthropic, OpenAI, Google, Azure, Deepseek, Mistral, and a handful of others behind a single function type that yields token strings. The Anthropic adapter takes advantage of prompt caching; other adapters do what they can. For persistence, pi uses a format called JSON lines — that is, one JSON object per line, in an append-only text file — with a parent-id field that lets a single file represent a conversation tree. You can fork, branch, replay. It is all there in plain text.
+
+Codex exposes a model provider trait with capability flags — does this provider support remote compaction, what is the maximum retry count for streaming, and so on. Transports degrade gracefully: WebSocket primary, HTTPS fallback after a few retries. Persistence is a rollout event log. Resuming a session does not replay forward from the beginning — it scans backward until it finds the most recent compaction checkpoint, and then replays only the events after it. This is efficient even for very long sessions.
+
+Claude Code is Anthropic-first in its semantics, but the message-sending shim is generic enough that host applications can wire alternative providers in. Persistence is a JSON file per session, in a structured directory under the user's home folder. Plus, on startup, the harness walks the project directory tree to find user-authored Claude markdown memory files, which get injected into the system prompt.
+
+Code puppy gets its provider integrations from Pydantic A I underneath, but adds a model factory with a cascading fallback. If your preferred model errors out, try the next, then the next. This is robust to outages but can cause the agent's behavior to shift subtly mid-conversation if it ends up on a different model than it started on.
+
+Opencode addresses models by string and routes through the software development kit. The interesting feature: because conversation state is server-state, you can switch models mid-session and keep the full history intact. The model changes; the conversation continues. Persistence is server-side, in a database accessed by clients. Multi-device resume and offline-first patterns are first-class concerns. You can pick up a conversation on your laptop that started on your phone, because the conversation lives on the server, not in any one client.
+
+=====
+CHAPTER NINE — IMPLICATIONS
+
+So what do we make of all this? What patterns emerge when you read five systems that solve the same problem in five different ways?
+
+The first thing is that the loop primitive determines your debugging surface, your cancellation story, and your concurrency model — all in one stroke. You do not get to pick those independently. Generators make every state transition observable, but they make stack traces harder and create a category of bug around partial state across yields. Async channels are great for backpressure and explicit cancellation, but the message types proliferate, and the loop body becomes a giant match statement. Nested whiles are the most legible, but you need a separate event bus to get observability. Event subscriptions cleanly separate the user interface thread from the work thread, but now retry semantics, message ordering, and reconnection are problems you own. Framework wrappers are fast to ship, but you inherit the framework's semantics, and customization stops where the framework's primitives stop. There is no free lunch here.
+
+The second thing is that hook-based permissions trade defaults for flexibility. Pi and code puppy both put permission policy entirely in the application layer. The win is that any policy composes naturally — user prompts, allowlists, external approval services, audit logging, you name it. The cost is that the default behavior is permissive. Forget to wire a hook and the agent will happily delete things. Claude Code and opencode codify a small set of modes or rules. Codex codifies operating-system enforcement. The more the harness chooses for you, the safer the default — and the harder it becomes to express unusual policies, like "ask only when this regex matches."
+
+The third thing is that the client-server split is a deployment story, not a feature. Opencode's biggest architectural choice — agent loop on the client, state and tools on the server — is what makes multi-device resume, offline-first sync, and slow tools all possible. None of those come for free. They require a server, a software development kit contract, and an event subscription protocol. Other harnesses can simulate parts of this — codex's rollout log lets you resume, pi's JSON lines let you replay — but a true client-server split is a different category of product. You are shipping a service, not a binary.
+
+The fourth thing is that sandboxing is a one-way door. Codex's Seatbelt and Landlock integration unlocks fully autonomous modes that the other harnesses cannot safely offer. The investment is real: profile authoring, per-operating-system implementation, environment variable conventions, a granular approval enum that distinguishes rules from sandbox. For agents that need to run untrusted commands without human approval — continuous integration, batch refactors, headless scripts — there is no substitute. For agents with a human in the loop, the work may not pay for itself.
+
+The fifth thing is the divide between systems that treat compaction as a hidden optimization and systems that treat it as a first-class user-visible event. Pi and code puppy hide it. Claude Code yields progress events as compaction happens. Opencode literally runs a separate agent to do the work. Visible compaction wins when users care about why the agent forgot something — they can see the moment and the reason. Hidden compaction wins when the agent is mostly autonomous and the answer to "what got compacted?" is "irrelevant."
+
+The sixth thing is that sub-agent context isolation is a tax — and an investment. Claude Code's Task tool spawns a fresh agent with no parent context, and the token cost of re-onboarding is real. But the parent stays small, and the child can explore aggressively without polluting the main conversation. Opencode's shared-session sub-agent is the opposite bet: token-efficient, but exploration bleeds into the main thread. Which is right depends entirely on whether your sub-agent's job is a delegated sub-problem you do not want to think about, or a coordinated workflow step you do.
+
+The seventh thing is that "minimal core" is itself a bet. Pi and code puppy both lean into the philosophy of thin core, extend everything. The bet is that ecosystems form. If they do, the core stays clean and small. If they do not, you end up writing every plugin yourself, and the "minimal core" becomes a to-do list rather than a feature. The biggest risk of this design is also its appeal: you have to build the rest.
+
+=====
+CHAPTER TEN — CONCLUSION
+
+The shared scaffolding across all five systems — the loop, the tool dispatch, the message history — is converging. Read all five back to back and you will recognize the same skeleton everywhere. The interesting differentiation lives in the small set of opinionated choices stacked on top: Claude Code's partition-by-safety dispatching, codex's dual approval plus operating-system sandbox, opencode's client-server split, pi's hook-everywhere ethos, code puppy's plugin proliferation.
+
+The lesson, if there is one, is this. If you are building a coding agent harness, the skeleton is table stakes. The opinions are the product. Decide what you believe about safety, observability, delegation, and persistence before you write the loop — because the loop will encode those beliefs whether you intend it to or not.
+
+The shape of an agent is the shape of its loop. And the shape of its loop is the shape of every choice that came before.

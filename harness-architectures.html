@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy of 5 Coding Agent Harnesses</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --bg-elev: #131317;
+    --bg-elev-2: #1a1a20;
+    --border: #26262e;
+    --border-soft: #1e1e25;
+    --text: #ededf0;
+    --text-2: #a0a0a8;
+    --text-3: #6a6a72;
+    --pi: #34d399;
+    --codex: #fb923c;
+    --cc: #a78bfa;
+    --puppy: #fb7185;
+    --oc: #22d3ee;
+    --pi-dim: rgba(52,211,153,.12);
+    --codex-dim: rgba(251,146,60,.12);
+    --cc-dim: rgba(167,139,250,.12);
+    --puppy-dim: rgba(251,113,133,.12);
+    --oc-dim: rgba(34,211,238,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(167,139,250,0.08), transparent 60%),
+      radial-gradient(1000px 500px at -10% 30%, rgba(34,211,238,0.06), transparent 60%),
+      radial-gradient(900px 400px at 50% 110%, rgba(251,146,60,0.05), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  main, header { position: relative; z-index: 1; }
+  a { color: inherit; }
+  code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  pre { overflow-x: auto; }
+  pre code { background: transparent; padding: 0; font-size: 13px; }
+  .mono { font-size: .9em; }
+
+  /* === Layout === */
+  .container { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+  @media (max-width: 720px) { .container { padding: 0 20px; } }
+
+  header.site {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    background: rgba(10,10,12,0.72);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  header.site .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+  header.site .brand {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header.site nav {
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  header.site nav a {
+    text-decoration: none;
+    transition: color .15s;
+  }
+  header.site nav a:hover { color: var(--text); }
+  @media (max-width: 880px) { header.site nav { display: none; } }
+
+  /* === Hero === */
+  section.hero {
+    padding: 110px 0 90px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .hero .eyebrow {
+    color: var(--text-3);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(40px, 6vw, 76px);
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin-bottom: 26px;
+    max-width: 14ch;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--text-2);
+    font-weight: 400;
+  }
+  .hero .lede {
+    max-width: 62ch;
+    font-size: 19px;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin-bottom: 56px;
+  }
+  .hero .lede strong { color: var(--text); font-weight: 500; }
+
+  .harness-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .harness-card {
+    background: var(--bg-elev);
+    padding: 24px 22px;
+    transition: background .2s;
+    cursor: default;
+    position: relative;
+  }
+  .harness-card:hover { background: var(--bg-elev-2); }
+  .harness-card .name {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .harness-card .lang {
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 14px;
+  }
+  .harness-card .tagline {
+    font-size: 13.5px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .harness-card .dot {
+    position: absolute;
+    top: 24px;
+    right: 22px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .harness-card[data-h="pi"] .dot { background: var(--pi); box-shadow: 0 0 16px var(--pi); }
+  .harness-card[data-h="codex"] .dot { background: var(--codex); box-shadow: 0 0 16px var(--codex); }
+  .harness-card[data-h="cc"] .dot { background: var(--cc); box-shadow: 0 0 16px var(--cc); }
+  .harness-card[data-h="puppy"] .dot { background: var(--puppy); box-shadow: 0 0 16px var(--puppy); }
+  .harness-card[data-h="oc"] .dot { background: var(--oc); box-shadow: 0 0 16px var(--oc); }
+
+  /* === Section === */
+  section.bay {
+    padding: 110px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .section-eyebrow {
+    color: var(--text-3);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .section-eyebrow .num {
+    color: var(--text);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 3.5vw, 44px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 18px;
+    max-width: 20ch;
+  }
+  .section-lede {
+    max-width: 70ch;
+    font-size: 17px;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin-bottom: 50px;
+  }
+
+  /* === Matrix === */
+  .matrix {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13.5px;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg-elev);
+  }
+  .matrix th, .matrix td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: top;
+  }
+  .matrix th {
+    background: var(--bg-elev-2);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--text-2);
+    position: sticky;
+    top: 60px;
+    z-index: 10;
+  }
+  .matrix th:first-child {
+    text-align: left;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .matrix td:first-child {
+    font-weight: 500;
+    color: var(--text);
+    border-right: 1px solid var(--border-soft);
+    font-size: 13px;
+  }
+  .matrix tr:last-child td { border-bottom: none; }
+  .matrix .h {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .matrix .h::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .matrix .h.pi::before { background: var(--pi); }
+  .matrix .h.codex::before { background: var(--codex); }
+  .matrix .h.cc::before { background: var(--cc); }
+  .matrix .h.puppy::before { background: var(--puppy); }
+  .matrix .h.oc::before { background: var(--oc); }
+  .matrix .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+  .matrix .scrollwrap { overflow-x: auto; }
+
+  /* === Loop diagrams === */
+  .loop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 22px;
+  }
+  .loop-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 24px;
+    transition: border .2s;
+  }
+  .loop-card:hover { border-color: var(--border); }
+  .loop-card[data-h="pi"] { border-top: 2px solid var(--pi); }
+  .loop-card[data-h="codex"] { border-top: 2px solid var(--codex); }
+  .loop-card[data-h="cc"] { border-top: 2px solid var(--cc); }
+  .loop-card[data-h="puppy"] { border-top: 2px solid var(--puppy); }
+  .loop-card[data-h="oc"] { border-top: 2px solid var(--oc); }
+  .loop-card .lc-name {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .loop-card .lc-pattern {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+  }
+  .loop-card[data-h="pi"] .lc-pattern { color: var(--pi); }
+  .loop-card[data-h="codex"] .lc-pattern { color: var(--codex); }
+  .loop-card[data-h="cc"] .lc-pattern { color: var(--cc); }
+  .loop-card[data-h="puppy"] .lc-pattern { color: var(--puppy); }
+  .loop-card[data-h="oc"] .lc-pattern { color: var(--oc); }
+  .loop-card svg { width: 100%; height: auto; display: block; margin-bottom: 16px; }
+  .loop-card p { color: var(--text-2); font-size: 13.5px; line-height: 1.55; }
+  .loop-card .lc-file {
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-3);
+    padding-top: 12px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .loop-card .lc-file::before { content: "↳ "; }
+
+  /* === Pattern blocks === */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 22px;
+  }
+  .pattern-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 26px;
+  }
+  .pattern-card .pc-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .pattern-card .pc-name {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 600;
+  }
+  .pattern-card .pc-h {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .pattern-card .pc-h.pi { color: var(--pi); }
+  .pattern-card .pc-h.codex { color: var(--codex); }
+  .pattern-card .pc-h.cc { color: var(--cc); }
+  .pattern-card .pc-h.puppy { color: var(--puppy); }
+  .pattern-card .pc-h.oc { color: var(--oc); }
+  .pattern-card p {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin-top: 8px;
+  }
+  .pattern-card p + p { margin-top: 10px; }
+  .pattern-card .pc-code {
+    background: rgba(0,0,0,0.32);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    font-size: 12px;
+    color: #cdd0d4;
+    line-height: 1.55;
+    overflow-x: auto;
+  }
+  .pattern-card .pc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .pattern-card .pc-meta span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-soft);
+    color: var(--text-3);
+  }
+
+  /* === Spectrum === */
+  .spectrum {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 36px 32px;
+    margin-top: 16px;
+  }
+  .spectrum-axis {
+    position: relative;
+    height: 6px;
+    background: linear-gradient(90deg, #1e1e25, #444);
+    border-radius: 3px;
+    margin: 36px 12px 50px;
+  }
+  .spectrum-tick {
+    position: absolute;
+    top: -10px;
+    transform: translateX(-50%);
+  }
+  .spectrum-tick::before {
+    content: "";
+    width: 2px;
+    height: 26px;
+    background: var(--text-3);
+    display: block;
+    margin: 0 auto;
+  }
+  .spectrum-tick .tt {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 6px;
+    white-space: nowrap;
+    text-align: center;
+    transform: translateX(-50%);
+    position: absolute;
+    left: 50%;
+    width: max-content;
+    max-width: 140px;
+  }
+  .spectrum-mark {
+    position: absolute;
+    top: -22px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .spectrum-mark .sm-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-elev);
+    box-shadow: 0 0 12px currentColor;
+  }
+  .spectrum-mark .sm-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-2);
+    background: var(--bg-elev);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border-soft);
+    margin-top: 4px;
+  }
+  .spectrum-mark.pi { color: var(--pi); top: 8px; }
+  .spectrum-mark.codex { color: var(--codex); top: -38px; }
+  .spectrum-mark.cc { color: var(--cc); top: 8px; }
+  .spectrum-mark.puppy { color: var(--puppy); top: -38px; }
+  .spectrum-mark.oc { color: var(--oc); top: 8px; }
+  @media (max-width: 720px) {
+    .spectrum-axis { margin-bottom: 80px; }
+    .spectrum-mark { top: auto !important; }
+  }
+
+  /* === Implications === */
+  .implication {
+    background: var(--bg-elev);
+    border-left: 3px solid var(--text-3);
+    padding: 26px 28px;
+    margin-bottom: 16px;
+    border-radius: 0 8px 8px 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .implication .imp-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .implication h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .implication .imp-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .implication p {
+    color: var(--text-2);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 78ch;
+  }
+  .implication ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 6px;
+  }
+  .implication ul li {
+    padding: 8px 0 8px 24px;
+    color: var(--text-2);
+    font-size: 14.5px;
+    line-height: 1.5;
+    position: relative;
+    border-top: 1px solid var(--border-soft);
+  }
+  .implication ul li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--text-3);
+  }
+  .implication ul li:first-child { border-top: none; }
+  .implication ul li strong { color: var(--text); font-weight: 500; }
+  .implication ul li code {
+    font-size: 12px;
+    color: var(--text-3);
+    padding: 1px 4px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 3px;
+  }
+
+  /* === Deep dive === */
+  .deepdive-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 28px;
+    padding: 4px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    width: max-content;
+    max-width: 100%;
+  }
+  .deepdive-tab {
+    padding: 8px 16px;
+    border-radius: 5px;
+    background: transparent;
+    border: none;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .deepdive-tab::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .deepdive-tab[data-h="pi"]::before { background: var(--pi); }
+  .deepdive-tab[data-h="codex"]::before { background: var(--codex); }
+  .deepdive-tab[data-h="cc"]::before { background: var(--cc); }
+  .deepdive-tab[data-h="puppy"]::before { background: var(--puppy); }
+  .deepdive-tab[data-h="oc"]::before { background: var(--oc); }
+  .deepdive-tab:hover { color: var(--text); background: var(--bg-elev-2); }
+  .deepdive-tab.active {
+    background: var(--bg-elev-2);
+    color: var(--text);
+  }
+  .deepdive-panel {
+    display: none;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 32px;
+  }
+  .deepdive-panel.active { display: block; }
+  .deepdive-panel h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .deepdive-panel .dd-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 28px;
+  }
+  .deepdive-panel h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .deepdive-panel h4:first-of-type { margin-top: 0; }
+  .deepdive-panel p {
+    color: var(--text-2);
+    font-size: 14.5px;
+    line-height: 1.65;
+    margin-bottom: 12px;
+    max-width: 78ch;
+  }
+  .deepdive-panel ul {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 12px;
+  }
+  .deepdive-panel ul li {
+    padding: 6px 0 6px 20px;
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+  }
+  .deepdive-panel ul li::before {
+    content: "•";
+    position: absolute;
+    left: 4px;
+    color: var(--text-3);
+  }
+  .deepdive-panel ul li strong { color: var(--text); font-weight: 500; }
+  .deepdive-panel code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: rgba(255,255,255,0.04);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #d8dadd;
+  }
+  .deepdive-panel pre {
+    background: rgba(0,0,0,0.32);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin: 14px 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #cdd0d4;
+  }
+  .deepdive-panel pre code { background: transparent; padding: 0; }
+  .deepdive-panel[data-h="pi"] { border-top: 2px solid var(--pi); }
+  .deepdive-panel[data-h="codex"] { border-top: 2px solid var(--codex); }
+  .deepdive-panel[data-h="cc"] { border-top: 2px solid var(--cc); }
+  .deepdive-panel[data-h="puppy"] { border-top: 2px solid var(--puppy); }
+  .deepdive-panel[data-h="oc"] { border-top: 2px solid var(--oc); }
+
+  .file-list {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 10px 20px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin-top: 12px;
+    font-size: 13px;
+  }
+  .file-list .fp {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-2);
+    font-size: 12.5px;
+  }
+  .file-list .fd { color: var(--text-2); }
+
+  /* === Footnote / ref === */
+  footer {
+    padding: 60px 0 100px;
+    color: var(--text-3);
+    font-size: 13px;
+  }
+  footer .container { max-width: 900px; }
+  footer p { margin-bottom: 12px; line-height: 1.6; }
+  footer a { color: var(--text-2); text-decoration: underline; text-decoration-color: var(--border); transition: text-decoration-color .15s; }
+  footer a:hover { text-decoration-color: var(--text-2); }
+
+  /* === Utility === */
+  .stack > * + * { margin-top: 16px; }
+  .pill {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
+  }
+  .pill.pi { background: var(--pi-dim); color: var(--pi); }
+  .pill.codex { background: var(--codex-dim); color: var(--codex); }
+  .pill.cc { background: var(--cc-dim); color: var(--cc); }
+  .pill.puppy { background: var(--puppy-dim); color: var(--puppy); }
+  .pill.oc { background: var(--oc-dim); color: var(--oc); }
+
+  /* === SVG node styles === */
+  svg .node {
+    fill: rgba(255,255,255,0.02);
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  svg .label {
+    fill: var(--text-2);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  svg .label-strong { fill: var(--text); font-weight: 600; }
+  svg .arrow { stroke: var(--text-3); stroke-width: 1; fill: none; }
+  svg .arrow-bold { stroke: var(--text-2); stroke-width: 1.4; fill: none; }
+  svg .accent-pi { stroke: var(--pi); }
+  svg .accent-codex { stroke: var(--codex); }
+  svg .accent-cc { stroke: var(--cc); }
+  svg .accent-puppy { stroke: var(--puppy); }
+  svg .accent-oc { stroke: var(--oc); }
+  svg .fill-pi { fill: var(--pi-dim); stroke: var(--pi); }
+  svg .fill-codex { fill: var(--codex-dim); stroke: var(--codex); }
+  svg .fill-cc { fill: var(--cc-dim); stroke: var(--cc); }
+  svg .fill-puppy { fill: var(--puppy-dim); stroke: var(--puppy); }
+  svg .fill-oc { fill: var(--oc-dim); stroke: var(--oc); }
+  svg text { font-family: 'JetBrains Mono', monospace; }
+
+  /* Pull quote */
+  .pullquote {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(22px, 2.4vw, 30px);
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    max-width: 32ch;
+    padding-left: 24px;
+    border-left: 2px solid var(--text-3);
+    margin: 32px 0;
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand">Anatomy of 5 Coding Agent Harnesses</div>
+    <nav>
+      <a href="#matrix">Matrix</a>
+      <a href="#loop">Loop</a>
+      <a href="#dispatch">Tools</a>
+      <a href="#context">Context</a>
+      <a href="#permissions">Permissions</a>
+      <a href="#implications">Implications</a>
+      <a href="#deepdive">Deep Dive</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">A reading of five open codebases</div>
+    <h1>The shape of an agent <em>is the shape of its loop.</em></h1>
+    <p class="lede">
+      Every coding agent has the same outer ring: ask a model, get tool calls, run them, feed results back. But beneath that, the five harnesses studied here resolve the same problem in <strong>strikingly different ways</strong> — different loop primitives, different permission models, different bets about where state lives. This is a side-by-side reading of pi, codex, Claude Code, code_puppy, and opencode, mapped to expose the architectural choices and the tradeoffs they imply.
+    </p>
+
+    <div class="harness-grid">
+      <div class="harness-card" data-h="pi">
+        <span class="dot"></span>
+        <div class="name">pi</div>
+        <div class="lang">TypeScript · ~5K LOC core</div>
+        <div class="tagline">Minimalist layered runtime — 4 npm packages composed via hooks. No native MCP, sub-agents, or permission popups; everything is an extension.</div>
+      </div>
+      <div class="harness-card" data-h="codex">
+        <span class="dot"></span>
+        <div class="name">codex</div>
+        <div class="lang">Rust + thin TS shell</div>
+        <div class="tagline">Safety-first. Tokio async loop, per-turn tool router, dual approval (rules + sandbox), Seatbelt/Landlock at the OS layer.</div>
+      </div>
+      <div class="harness-card" data-h="cc">
+        <span class="dot"></span>
+        <div class="name">Claude Code</div>
+        <div class="lang">TypeScript · async generator</div>
+        <div class="tagline">Generator-driven streaming. Yield points everywhere — tools, compaction, state mutations — so the UI sees every breath the agent takes.</div>
+      </div>
+      <div class="harness-card" data-h="puppy">
+        <span class="dot"></span>
+        <div class="name">code_puppy</div>
+        <div class="lang">Python · on Pydantic-AI</div>
+        <div class="tagline">A thin shell on a fat framework. 50+ plugin hooks, two-pass tool registration, MCP-native, cascading model fallback.</div>
+      </div>
+      <div class="harness-card" data-h="oc">
+        <span class="dot"></span>
+        <div class="name">opencode</div>
+        <div class="lang">TS / Bun + Go TUI</div>
+        <div class="tagline">Client–server split (ACP). Loop runs client-side; sessions, tools, and history live server-side. Multi-device, offline-friendly by design.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== MATRIX ============== -->
+<section class="bay" id="matrix">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>At a glance</div>
+    <h2 class="section-title">Ten dimensions, five takes.</h2>
+    <p class="section-lede">
+      The interesting differences live in <em>how</em> each harness resolves the same engineering questions. Read each row to see where these systems diverge — and where they quietly converge.
+    </p>
+
+    <div class="scrollwrap">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Dimension</th>
+          <th><span class="h pi">pi</span></th>
+          <th><span class="h codex">codex</span></th>
+          <th><span class="h cc">Claude Code</span></th>
+          <th><span class="h puppy">code_puppy</span></th>
+          <th><span class="h oc">opencode</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Loop primitive</td>
+          <td>Nested <code>while</code> in <span class="mono">agent-loop.ts</span></td>
+          <td>tokio <code>submission_loop</code> + per-turn tasks</td>
+          <td><code>async function*</code> generator (<span class="mono">queryLoop</span>)</td>
+          <td>Pydantic-AI <code>run_stream</code> wrapped in retry decorator</td>
+          <td>Server processor + client event subscription</td>
+        </tr>
+        <tr>
+          <td>Tool registration</td>
+          <td>Static list + <code>executionMode</code> tag</td>
+          <td><strong>Per-turn</strong> <code>ToolRouter</code> rebuild</td>
+          <td>Static + Bun <code>feature()</code> macro gates</td>
+          <td><strong>Two-pass</strong>: probe → filter MCP → rebuild</td>
+          <td>Static config + MCP discovery at session create</td>
+        </tr>
+        <tr>
+          <td>Parallel tools</td>
+          <td><code>Promise.all</code> default; per-tool sequential opt-in</td>
+          <td><code>FuturesOrdered</code> + <code>tokio::select!</code></td>
+          <td>Partition by <code>isConcurrencySafe</code>, max 10 parallel</td>
+          <td>Delegated to Pydantic-AI</td>
+          <td>Server-coordinated; client sees serialized approvals</td>
+        </tr>
+        <tr>
+          <td>Context strategy</td>
+          <td>LLM summary, append-only JSONL with branching</td>
+          <td>3 trigger points; <em>ServerObserved</em> vs <em>Estimated</em> prefill</td>
+          <td>4 strategies: autocompact / microcompact / snip / collapse</td>
+          <td><code>summarize()</code> with protected token count</td>
+          <td>Dedicated <code>compaction</code> variant agent</td>
+        </tr>
+        <tr>
+          <td>Permission model</td>
+          <td><span class="tag">none built-in</span> — <code>beforeToolCall</code> hook</td>
+          <td><span class="tag">Granular</span> rules + sandbox toggles</td>
+          <td><span class="tag">4 modes</span> + <code>canUseTool</code> callback</td>
+          <td>Plugin hook (<code>file_permission</code>, <code>pre_tool_call</code>)</td>
+          <td><span class="tag">once</span> / <span class="tag">always</span> / <span class="tag">reject</span> per tool, merged from 3 sources</td>
+        </tr>
+        <tr>
+          <td>Sandboxing</td>
+          <td>None (hook-defined)</td>
+          <td><strong>Seatbelt</strong> (macOS) / <strong>Landlock</strong> (Linux) via env-var injection</td>
+          <td>cwd restriction + env-var scrub</td>
+          <td>Plugin-defined; MCP servers are processes</td>
+          <td>Mode-restricted tool access (primary/subagent/all)</td>
+        </tr>
+        <tr>
+          <td>Sub-agents</td>
+          <td><span class="tag">not native</span> — build as tool</td>
+          <td><code>AgentRegistry</code> with spawn slots, policy inheritance</td>
+          <td><code>Task</code> tool spawns fresh, isolated agent</td>
+          <td>Subclass <code>BaseAgent</code>, unique identity</td>
+          <td>Variant + shared session, read-only mode</td>
+        </tr>
+        <tr>
+          <td>Provider abstraction</td>
+          <td>Native multi (<code>pi-ai</code> package)</td>
+          <td><code>ModelProvider</code> trait + transport fallback</td>
+          <td>Anthropic-first; <code>getLLMClient()</code> generic</td>
+          <td>Via Pydantic-AI + <code>ModelFactory</code> cascade</td>
+          <td>Multi, switchable mid-session</td>
+        </tr>
+        <tr>
+          <td>Persistence</td>
+          <td>JSONL append-only, <code>parentId</code> branching</td>
+          <td>Rollout event log; reverse-replay reconstruction</td>
+          <td>JSON file per session in <span class="mono">~/.claude/projects</span></td>
+          <td>In-memory + hash dedup</td>
+          <td><strong>Server-side</strong> via SDK (DB-backed)</td>
+        </tr>
+        <tr>
+          <td>Streaming model</td>
+          <td><code>streamFn</code> callback + event bus</td>
+          <td>WebSocket + select!</td>
+          <td>Generator yields chunks</td>
+          <td>Pydantic-AI stream + retry decorator</td>
+          <td>Delta events via subscription</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============== LOOP ============== -->
+<section class="bay" id="loop">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>The loop</div>
+    <h2 class="section-title">Every agent loop solves the same equation differently.</h2>
+    <p class="section-lede">
+      The job is identical: stream a model response, intercept tool calls, run them, feed results back, repeat until the model says it's done. The shape of how each harness organizes that — and what it makes visible to the outside — is the most consequential decision in the entire codebase.
+    </p>
+
+    <div class="pullquote">
+      Pick your loop primitive and you've picked your debugging surface, your cancellation story, and your concurrency model — all in one stroke.
+    </div>
+
+    <div class="loop-grid">
+
+      <div class="loop-card" data-h="pi">
+        <div class="lc-name">pi</div>
+        <div class="lc-pattern">nested while · event-bus</div>
+        <svg viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar-pi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#34d399"/>
+            </marker>
+          </defs>
+          <!-- outer while -->
+          <rect class="node" x="20" y="20" width="320" height="160" rx="6"/>
+          <text x="30" y="36" class="label">while (followUp || !terminated)</text>
+          <!-- inner while -->
+          <rect class="node" x="40" y="50" width="280" height="120" rx="4"/>
+          <text x="50" y="66" class="label">while (steering || !turnEnded)</text>
+          <!-- LLM -->
+          <rect class="node fill-pi" x="60" y="82" width="80" height="30" rx="3"/>
+          <text x="100" y="101" text-anchor="middle" class="label label-strong">lmFunc()</text>
+          <!-- tool -->
+          <rect class="node fill-pi" x="160" y="82" width="80" height="30" rx="3"/>
+          <text x="200" y="101" text-anchor="middle" class="label label-strong">executeTools</text>
+          <!-- hooks -->
+          <rect class="node" x="260" y="82" width="50" height="30" rx="3"/>
+          <text x="285" y="101" text-anchor="middle" class="label">hooks</text>
+          <!-- emit events -->
+          <rect class="node" x="60" y="130" width="250" height="26" rx="3"/>
+          <text x="185" y="147" text-anchor="middle" class="label">emit: turn_start, tool_*, message_*</text>
+          <!-- arrows -->
+          <path class="arrow accent-pi" d="M140,97 L160,97" marker-end="url(#ar-pi)"/>
+          <path class="arrow accent-pi" d="M240,97 L260,97" marker-end="url(#ar-pi)"/>
+        </svg>
+        <p>Two stacked while loops. The <strong>inner</strong> handles a single turn — call model, run tools, repeat until the model emits no more tool calls. The <strong>outer</strong> picks up queued follow-up messages so the agent autonomously continues a conversation. Every state change goes out an event bus.</p>
+        <div class="lc-file">packages/agent/src/agent-loop.ts · runLoop()</div>
+      </div>
+
+      <div class="loop-card" data-h="codex">
+        <div class="lc-name">codex</div>
+        <div class="lc-pattern">tokio channel · spawn per turn</div>
+        <svg viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar-cx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#fb923c"/>
+            </marker>
+          </defs>
+          <!-- channel -->
+          <rect class="node" x="20" y="80" width="80" height="40" rx="3"/>
+          <text x="60" y="95" text-anchor="middle" class="label">channel&lt;Submission&gt;</text>
+          <text x="60" y="110" text-anchor="middle" class="label">recv()</text>
+          <!-- submission_loop -->
+          <rect class="node fill-codex" x="120" y="60" width="120" height="80" rx="4"/>
+          <text x="180" y="78" text-anchor="middle" class="label label-strong">submission_loop</text>
+          <text x="180" y="96" text-anchor="middle" class="label">UserInput</text>
+          <text x="180" y="112" text-anchor="middle" class="label">ThreadSettings</text>
+          <text x="180" y="128" text-anchor="middle" class="label">Approval/Stop…</text>
+          <!-- spawned turn -->
+          <rect class="node" x="260" y="40" width="80" height="40" rx="3"/>
+          <text x="300" y="58" text-anchor="middle" class="label">spawn(run_turn)</text>
+          <text x="300" y="72" text-anchor="middle" class="label">TurnContext</text>
+          <rect class="node" x="260" y="90" width="80" height="40" rx="3"/>
+          <text x="300" y="108" text-anchor="middle" class="label">spawn(run_turn)</text>
+          <text x="300" y="122" text-anchor="middle" class="label">TurnContext'</text>
+          <rect class="node" x="260" y="140" width="80" height="30" rx="3"/>
+          <text x="300" y="158" text-anchor="middle" class="label">…</text>
+          <path class="arrow accent-codex" d="M100,100 L120,100" marker-end="url(#ar-cx)"/>
+          <path class="arrow accent-codex" d="M240,80 L260,60" marker-end="url(#ar-cx)"/>
+          <path class="arrow accent-codex" d="M240,110 L260,110" marker-end="url(#ar-cx)"/>
+        </svg>
+        <p>An async-channel feeds <code>submission_loop</code>, which pattern-matches on operation kind and spawns a fresh <code>run_turn</code> task per user input. Each turn carries an immutable <code>TurnContext</code> — explicit, never thread-local — so concurrent turns never alias state.</p>
+        <div class="lc-file">codex-rs/core/src/session/handlers.rs · submission_loop</div>
+      </div>
+
+      <div class="loop-card" data-h="cc">
+        <div class="lc-name">Claude Code</div>
+        <div class="lc-pattern">async generator · yield boundaries</div>
+        <svg viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar-cc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#a78bfa"/>
+            </marker>
+          </defs>
+          <rect class="node fill-cc" x="20" y="50" width="320" height="110" rx="6"/>
+          <text x="30" y="68" class="label label-strong">async function* queryLoop()</text>
+          <!-- yields -->
+          <rect class="node" x="40" y="88" width="60" height="24" rx="3"/>
+          <text x="70" y="103" text-anchor="middle" class="label">yield Δ</text>
+          <rect class="node" x="108" y="88" width="60" height="24" rx="3"/>
+          <text x="138" y="103" text-anchor="middle" class="label">yield tool</text>
+          <rect class="node" x="176" y="88" width="76" height="24" rx="3"/>
+          <text x="214" y="103" text-anchor="middle" class="label">yield compact</text>
+          <rect class="node" x="260" y="88" width="60" height="24" rx="3"/>
+          <text x="290" y="103" text-anchor="middle" class="label">yield end</text>
+          <!-- consumer -->
+          <rect class="node" x="60" y="130" width="240" height="22" rx="3"/>
+          <text x="180" y="146" text-anchor="middle" class="label">UI / state observer (for await of …)</text>
+          <path class="arrow accent-cc" d="M70,112 L70,130" marker-end="url(#ar-cc)"/>
+          <path class="arrow accent-cc" d="M138,112 L138,130" marker-end="url(#ar-cc)"/>
+          <path class="arrow accent-cc" d="M214,112 L214,130" marker-end="url(#ar-cc)"/>
+          <path class="arrow accent-cc" d="M290,112 L290,130" marker-end="url(#ar-cc)"/>
+        </svg>
+        <p>One <code>async function*</code> with <code>while (true)</code> inside (query.ts:307). Every state transition — chunk arrived, tool ran, compaction kicked in, turn ended — exits the function via <code>yield</code>. The consumer sees the agent's lifecycle as a stream of events without polling.</p>
+        <div class="lc-file">src/query.ts · queryLoop (line 241)</div>
+      </div>
+
+      <div class="loop-card" data-h="puppy">
+        <div class="lc-name">code_puppy</div>
+        <div class="lc-pattern">thin wrap · retry decorator</div>
+        <svg viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar-pp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#fb7185"/>
+            </marker>
+          </defs>
+          <!-- outer: run_with_mcp -->
+          <rect class="node" x="20" y="20" width="320" height="160" rx="6"/>
+          <text x="30" y="36" class="label">run_with_mcp() — prune + load MCP + build</text>
+          <!-- retry -->
+          <rect class="node fill-puppy" x="40" y="56" width="280" height="100" rx="4"/>
+          <text x="50" y="73" class="label label-strong">@streaming_retry</text>
+          <!-- pydantic-ai run -->
+          <rect class="node" x="60" y="88" width="240" height="50" rx="3"/>
+          <text x="180" y="108" text-anchor="middle" class="label label-strong">pydantic_agent.run_stream()</text>
+          <text x="180" y="124" text-anchor="middle" class="label">history · usage_limits · event_handler</text>
+          <text x="50" y="150" class="label">retry on: rate_limit, overloaded, RemoteProtocolError…</text>
+        </svg>
+        <p>The harness is mostly a wrapper. The actual loop is Pydantic-AI's; <code>_runtime.py</code> handles message-history prep, MCP server bring-up, and a <code>@streaming_retry</code> that catches transient stream errors. The plugin hook system runs above and around the call.</p>
+        <div class="lc-file">code_puppy/agents/_runtime.py · run_with_mcp</div>
+      </div>
+
+      <div class="loop-card" data-h="oc">
+        <div class="lc-name">opencode</div>
+        <div class="lc-pattern">client/server · ACP events</div>
+        <svg viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar-oc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#22d3ee"/>
+            </marker>
+          </defs>
+          <!-- client -->
+          <rect class="node fill-oc" x="20" y="30" width="140" height="140" rx="5"/>
+          <text x="90" y="48" text-anchor="middle" class="label label-strong">Client (Agent)</text>
+          <rect class="node" x="36" y="62" width="108" height="24" rx="3"/>
+          <text x="90" y="78" text-anchor="middle" class="label">prompt()</text>
+          <rect class="node" x="36" y="94" width="108" height="24" rx="3"/>
+          <text x="90" y="110" text-anchor="middle" class="label">events.subscribe</text>
+          <rect class="node" x="36" y="126" width="108" height="36" rx="3"/>
+          <text x="90" y="142" text-anchor="middle" class="label">permission</text>
+          <text x="90" y="156" text-anchor="middle" class="label">manager</text>
+          <!-- server -->
+          <rect class="node fill-oc" x="200" y="30" width="140" height="140" rx="5"/>
+          <text x="270" y="48" text-anchor="middle" class="label label-strong">Server</text>
+          <rect class="node" x="216" y="62" width="108" height="24" rx="3"/>
+          <text x="270" y="78" text-anchor="middle" class="label">session.processor</text>
+          <rect class="node" x="216" y="94" width="108" height="24" rx="3"/>
+          <text x="270" y="110" text-anchor="middle" class="label">tool execution</text>
+          <rect class="node" x="216" y="126" width="108" height="36" rx="3"/>
+          <text x="270" y="142" text-anchor="middle" class="label">message store</text>
+          <text x="270" y="156" text-anchor="middle" class="label">(persistent)</text>
+          <!-- arrows -->
+          <path class="arrow accent-oc" d="M144,76 L216,76" marker-end="url(#ar-oc)"/>
+          <text x="180" y="70" text-anchor="middle" class="label">create</text>
+          <path class="arrow accent-oc" d="M216,106 L144,106" marker-end="url(#ar-oc)"/>
+          <text x="180" y="120" text-anchor="middle" class="label">events</text>
+          <path class="arrow accent-oc" d="M144,142 L216,142" marker-end="url(#ar-oc)"/>
+          <text x="180" y="155" text-anchor="middle" class="label">approve</text>
+        </svg>
+        <p>The client creates a message, then waits on an event stream. Tool calls arrive as <code>permission.asked</code>; the client decides yes/no and sends approval back. The actual model call, tool execution, and message persistence all live server-side — the client is mostly UI and consent.</p>
+        <div class="lc-file">packages/opencode/src/acp/agent.ts · session/processor.ts</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============== TOOL DISPATCH ============== -->
+<section class="bay" id="dispatch">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Tool dispatch</div>
+    <h2 class="section-title">Five answers to "which tools, when, in parallel?"</h2>
+    <p class="section-lede">
+      Tool registration looks like a config detail until you realize it gates safety, performance, and extensibility all at once. These five harnesses split into static-list, partition-by-safety, per-turn-router, two-pass, and server-side dispatch — and each tradeoff shows up in the developer experience downstream.
+    </p>
+
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Static list, mode-tagged</div>
+          <div class="pc-h pi">pi</div>
+        </div>
+        <p>Tools register once at boot with an <code>executionMode</code>. The loop calls <code>Promise.all</code> by default and falls back to a sequential <code>for…await</code> for tools that mark themselves serial. Permission gates are <em>hooks</em>, not policy types.</p>
+        <pre class="pc-code">// before/after hooks wrap every call
+{ executionMode: 'parallel' } → Promise.all
+{ executionMode: 'sequential' } → for…await
+beforeToolCall?(call) → may reject → tool errors
+afterToolCall?(call, result) → may transform</pre>
+        <div class="pc-meta">
+          <span>schema: JSON Schema</span>
+          <span>parallel: by-default</span>
+          <span>extension: hook</span>
+        </div>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Per-turn ToolRouter rebuild</div>
+          <div class="pc-h codex">codex</div>
+        </div>
+        <p>Every turn re-queries MCP servers, re-evaluates plugin eligibility against the current config, and constructs a fresh <code>ToolRouter</code> from MCP tools + plugins + accessible connectors. Tools that need OAuth sit in a <em>deferred</em> bucket.</p>
+        <pre class="pc-code">ToolRouter::from_turn_context(
+  &turn,
+  mcp_tools,         // dynamic
+  deferred_mcp_tools, // pending auth
+  discoverable_tools,
+  extension_tool_executors,
+  dynamic_tools,
+)</pre>
+        <div class="pc-meta">
+          <span>schema: JSON Schema (MCP)</span>
+          <span>parallel: FuturesOrdered</span>
+          <span>rebuild: every turn</span>
+        </div>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Partition by concurrency-safety</div>
+          <div class="pc-h cc">Claude Code</div>
+        </div>
+        <p>Each tool declares <code>isConcurrencySafe(input)</code>. The dispatcher walks the LLM's tool calls and greedily batches consecutive safe ones; anything write-y breaks the batch and runs serially. Cap is 10 parallel (env-overridable).</p>
+        <pre class="pc-code">// reduce into batches by safety
+if (safe && lastBatch.safe) lastBatch.push(t);
+else newBatch({safe, [t]});
+
+// safe batch → all(), unsafe → sequential</pre>
+        <div class="pc-meta">
+          <span>schema: Zod</span>
+          <span>parallel: hybrid</span>
+          <span>cap: 10</span>
+        </div>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Two-pass registration</div>
+          <div class="pc-h puppy">code_puppy</div>
+        </div>
+        <p>Step one: build a dummy Pydantic-AI agent to enumerate the names of native tools. Step two: load MCP servers, drop any whose names collide, and rebuild for real. Solves the MCP name-clash problem without manual config.</p>
+        <pre class="pc-code">dummy = PydanticAgent(model, toolsets=[])
+existing = {t.name for t in dummy._tools}
+mcp = load_mcp_servers(name)
+mcp = filter_conflicting(mcp, existing)
+agent = PydanticAgent(model,
+  toolsets=[*native, *mcp])</pre>
+        <div class="pc-meta">
+          <span>schema: Pydantic</span>
+          <span>parallel: Pydantic-AI</span>
+          <span>MCP-first</span>
+        </div>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Server-side dispatch</div>
+          <div class="pc-h oc">opencode</div>
+        </div>
+        <p>The client never invokes a tool. It receives a <code>permission.asked</code> event, decides, and posts <code>approveTool</code>/<code>ignoreTool</code>. The server runs every tool, persists every result, and streams deltas back — so tools can be slow, async, or remote without freezing the UI.</p>
+        <pre class="pc-code">// client
+events.on('permission.asked', async e => {
+  const ok = await permissions.request(e);
+  sdk.message[ok ? 'approveTool' : 'ignoreTool'](e);
+});
+// server: pending → running → completed/error</pre>
+        <div class="pc-meta">
+          <span>schema: server-defined</span>
+          <span>parallel: server-orchestrated</span>
+          <span>state machine: 5-state</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== CONTEXT ============== -->
+<section class="bay" id="context">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">04</span>Context &amp; compaction</div>
+    <h2 class="section-title">When the window fills, who decides what to forget?</h2>
+    <p class="section-lede">
+      Context-window management is the unglamorous core of an agent harness. Get it wrong and the agent forgets the task at hand; get it right and it survives day-long sessions. Each harness has a different theory of <em>when</em> to compact, <em>how</em> aggressively, and <em>how visible</em> the operation is to the user.
+    </p>
+
+    <div class="pattern-grid">
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">LLM-summarized, branch-preserving</div>
+          <div class="pc-h pi">pi</div>
+        </div>
+        <p>When tokens cross a threshold, the harness summarizes the oldest N messages via the LLM and writes a special "compaction" record to the JSONL log. <strong>The original messages are not deleted</strong> — they remain in the file, so a user can branch off the pre-compaction state.</p>
+        <p>Implication: full audit trail. Disk grows; active context doesn't.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Three-phase auto-compact</div>
+          <div class="pc-h codex">codex</div>
+        </div>
+        <p>Compaction fires at <strong>three trigger points</strong>: pre-sampling (before the LLM call), mid-turn (when tokens exhaust during a streaming turn), and post-sampling (cleanup). The <code>AutoCompactWindow</code> distinguishes <em>ServerObserved</em> prefill (authoritative) from <em>Estimated</em> (client guess).</p>
+        <p>Implication: bridges streaming latency without over- or under-counting tokens.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Four strategies, all observable</div>
+          <div class="pc-h cc">Claude Code</div>
+        </div>
+        <p>Layered defense: <code>autocompact</code> summarizes old turns, <code>microcompact</code> shaves on output-token exhaustion, <code>snip</code> trims oversized tool outputs, and <em>context collapse</em> is the nuclear fallback. Every compaction step yields a <code>CompactProgressEvent</code> — the user watches the prompt being engineered.</p>
+        <p>Implication: maximum transparency, maximum complexity to debug.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Summary + protected window</div>
+          <div class="pc-h puppy">code_puppy</div>
+        </div>
+        <p>A <code>summarize()</code> function that preserves system messages, the most recent exchange (protected token count), and turns everything in between into a summary. Plugins can replace the strategy via <code>history_processors</code>.</p>
+        <p>Implication: simple to reason about; plugin-replaceable when simple isn't enough.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">A variant agent does the work</div>
+          <div class="pc-h oc">opencode</div>
+        </div>
+        <p>Compaction isn't a function — it's its own <strong>agent variant</strong>. When the threshold trips, the parent agent calls <code>getAgentVariant('compaction').prompt(...)</code>, treating summarization as a first-class delegation. Old messages are replaced with the summary on the server.</p>
+        <p>Implication: same primitives all the way down. The cost of summarization shows up in your normal token-usage accounting.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============== PERMISSIONS ============== -->
+<section class="bay" id="permissions">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">05</span>Permissions &amp; sandboxing</div>
+    <h2 class="section-title">From "trust the user" to "trust the kernel."</h2>
+    <p class="section-lede">
+      Permission models reveal what each project is afraid of. pi and code_puppy assume you'll add policy via plugins. Claude Code and opencode build in modes and approval flows. Codex pushes furthest — into OS-level sandboxing — because it was designed to run untrusted commands without human-in-the-loop.
+    </p>
+
+    <div class="spectrum">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+        <div style="font-size:12px;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">Enforcement strength</div>
+        <div style="font-size:12px;color:var(--text-3);font-family:'JetBrains Mono',monospace;">none → application → kernel</div>
+      </div>
+      <div class="spectrum-axis">
+        <div class="spectrum-tick" style="left:5%"><div class="tt">none built-in</div></div>
+        <div class="spectrum-tick" style="left:30%"><div class="tt">application hook</div></div>
+        <div class="spectrum-tick" style="left:55%"><div class="tt">policy modes</div></div>
+        <div class="spectrum-tick" style="left:80%"><div class="tt">policy + OS sandbox</div></div>
+
+        <div class="spectrum-mark pi" style="left:5%">
+          <div class="sm-dot"></div>
+          <div class="sm-label">pi · hook</div>
+        </div>
+        <div class="spectrum-mark puppy" style="left:30%">
+          <div class="sm-dot"></div>
+          <div class="sm-label">code_puppy · 50+ hooks</div>
+        </div>
+        <div class="spectrum-mark oc" style="left:55%">
+          <div class="sm-dot"></div>
+          <div class="sm-label">opencode · once/always/reject</div>
+        </div>
+        <div class="spectrum-mark cc" style="left:67%">
+          <div class="sm-dot"></div>
+          <div class="sm-label">Claude Code · 4 modes</div>
+        </div>
+        <div class="spectrum-mark codex" style="left:88%">
+          <div class="sm-dot"></div>
+          <div class="sm-label">codex · Seatbelt/Landlock</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pattern-grid" style="margin-top:48px;">
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Dual approval + OS sandbox</div>
+          <div class="pc-h codex">codex</div>
+        </div>
+        <p>The <code>AskForApproval</code> enum has a <code>Granular</code> variant that separates <em>rules</em> approval (allow/deny lists) from <em>sandbox</em> approval (OS-level confinement). A command can pass rules but still be confined; or run without a sandbox but only if explicitly allowlisted.</p>
+        <p>OS sandboxing is plumbed by injecting env vars (<code>CODEX_SANDBOX_ENV_VAR="seatbelt"</code>) — the runtime reads them and applies Seatbelt on macOS, Landlock+seccomp on Linux. Decoupling policy selection from enforcement is a deliberate choice.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Four named modes</div>
+          <div class="pc-h cc">Claude Code</div>
+        </div>
+        <p>Tools declare a <code>ToolPermissionMode</code> ∈ {<code>default</code>, <code>acceptEdits</code>, <code>bypassPermissions</code>, <code>plan</code>}. Before any tool runs, a <code>canUseTool(name, input)</code> callback fires — host apps decide whether to prompt the user, auto-approve, or deny.</p>
+        <p>Plan mode is structurally distinct: the agent <em>describes</em> what it would do rather than doing it. Useful for high-stakes review before committing to writes.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Three-rule merge</div>
+          <div class="pc-h oc">opencode</div>
+        </div>
+        <p>Per tool, the effective rule is one of <code>once</code> / <code>always</code> / <code>reject</code>. <code>once</code> caches the user's first answer for the rest of the session. The actual rule is a 3-way merge: global defaults ← variant defaults ← user overrides.</p>
+        <p>Sub-agents run in <code>subagent</code> mode, which silently strips write tools — defense in depth.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Hook-defined policy</div>
+          <div class="pc-h pi">pi</div>
+        </div>
+        <p>No built-in permission system. The <code>beforeToolCall</code> hook receives each invocation; the hook can validate, reject, or transform args. Whether to prompt the user, log, or sandbox is up to the application embedding the harness.</p>
+        <p>Tradeoff: maximum flexibility, zero defaults. Easy to ship something dangerous.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">50+ hooks, any policy</div>
+          <div class="pc-h puppy">code_puppy</div>
+        </div>
+        <p>Plugins implement callbacks like <code>file_permission(agent, path, op) → bool</code>, <code>run_shell_command(agent, cmd) → bool</code>, <code>pre_tool_call(agent, name, args) → bool</code>. Each plugin can add async approval flows by deferring to external services.</p>
+        <p>MCP servers run in their own processes — process isolation is free, kernel sandbox is not.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============== SUB-AGENTS ============== -->
+<section class="bay" id="subagents">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">06</span>Sub-agents</div>
+    <h2 class="section-title">Delegate how? Share what?</h2>
+    <p class="section-lede">
+      The decision to support sub-agents is a decision about state. Do they share context (cheap, leaky) or get a fresh slate (clean, but you pay tokens to re-onboard them)? Do they inherit your permissions (convenient, scary) or run constrained (safe, awkward)?
+    </p>
+
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Not native, by design</div>
+          <div class="pc-h pi">pi</div>
+        </div>
+        <p>The pi core has no sub-agent primitive. If you want delegation, you wire it as a tool whose handler spins up its own agent loop. The framework's bet: opinionated sub-agent semantics live above the core, not in it.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Registry · spawn slots · policy inheritance</div>
+          <div class="pc-h codex">codex</div>
+        </div>
+        <p>An <code>AgentRegistry</code> per session tracks every spawned agent, enforces a depth limit (slot reservation), inherits the parent's approval+sandbox policies, and gives each agent a human-readable nickname for logs.</p>
+        <p>Inter-agent communication runs through the session's event channel — the same mechanism users use.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Fresh agent via Task tool</div>
+          <div class="pc-h cc">Claude Code</div>
+        </div>
+        <p>The <code>Task</code> tool spawns a brand-new agent with <em>isolated</em> context. The parent passes a goal; the child runs to completion, cancellation, or timeout; and the final output is returned as a tool result. The child can be scoped to a subdirectory and a sandbox mode.</p>
+        <p>Cost: context isolation means the child re-reads what it needs. Benefit: parent context doesn't bloat with exploratory tool output.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Subclass &amp; identity</div>
+          <div class="pc-h puppy">code_puppy</div>
+        </div>
+        <p>Each concrete agent is a subclass of <code>BaseAgent</code> with its own system prompt, tool set, and message history. A unique identity string (<code>name-{id[:6]}</code>) lets agents reference one another for coordination.</p>
+        <p>Per-agent history prevents cross-leakage but means coordination is by tool call, not shared memory.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Variant + shared session</div>
+          <div class="pc-h oc">opencode</div>
+        </div>
+        <p>Sub-agents are just <em>variants</em> (plan, explore, scout, …) running in <code>subagent</code> mode with read-only tool access. They share the parent's session — so their outputs append to the same message stream and inherit the same prompt cache.</p>
+        <p>Compaction itself is implemented as a sub-agent variant.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== PROVIDERS & PERSISTENCE ============== -->
+<section class="bay" id="providers">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">07</span>Providers &amp; persistence</div>
+    <h2 class="section-title">Where does the model live, where does the state go?</h2>
+    <p class="section-lede">
+      Two adjacent choices that shape an agent's deployment story. Provider abstraction decides what you can swap; persistence decides what survives a crash. Together they determine whether the agent is "a CLI you run" or "a service your team operates."
+    </p>
+
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">pi-ai: native multi-provider</div>
+          <div class="pc-h pi">pi</div>
+        </div>
+        <p>A dedicated <code>pi-ai</code> package normalizes Anthropic / OpenAI / Google / Azure / DeepSeek / Mistral / others behind a single <code>LMFunction</code> type that yields token strings. The Anthropic adapter takes advantage of prompt caching via <code>cache_control</code>; other adapters do what they can.</p>
+        <p>Persistence: JSONL on disk in <code>~/.pi/agent/sessions/</code>, append-only with a <code>parentId</code> field that turns the file into a conversation tree.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">ModelProvider trait + rollout log</div>
+          <div class="pc-h codex">codex</div>
+        </div>
+        <p>A <code>ModelProvider</code> trait exposes capabilities (e.g., <code>supports_remote_compaction</code>) so the harness can adapt strategy per provider. Transports degrade gracefully: WebSocket primary, HTTPS fallback after N retries.</p>
+        <p>Persistence: a <strong>rollout event log</strong>. Resume scans <em>backward</em> until it finds a compaction checkpoint, then replays forward — efficient even for very long sessions.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Anthropic-first, host-pluggable</div>
+          <div class="pc-h cc">Claude Code</div>
+        </div>
+        <p>The harness clearly assumes Anthropic semantics (system prompts, cache_control, streaming format), but the <code>sendMessage</code> shim is generic enough that host apps can wire alternative providers.</p>
+        <p>Persistence: a JSON file per session in <code>~/.claude/projects/&lt;project-id&gt;/sessions/</code>, plus user-authored <code>CLAUDE.md</code> memory files discovered via directory walk on startup.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">Pydantic-AI + cascade fallback</div>
+          <div class="pc-h puppy">code_puppy</div>
+        </div>
+        <p>Pydantic-AI's provider integrations do the heavy lifting; on top, <code>ModelFactory</code> + <code>load_model_with_fallback</code> implement a cascade — if your preferred model errors out, try the next, then the next.</p>
+        <p>Persistence: minimal. Message history lives in <code>BaseAgent._message_history</code> with a <code>_compacted_message_hashes</code> set to avoid re-summarizing the same content. Durability is a plugin's job.</p>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pc-head">
+          <div class="pc-name">SDK-mediated, switch mid-session</div>
+          <div class="pc-h oc">opencode</div>
+        </div>
+        <p>Models are addressed by string; the SDK routes to the right provider. The interesting part: the conversation is server-state, so you can swap models <em>mid-session</em> and keep the entire history intact.</p>
+        <p>Persistence: server-side database, accessed by clients via SDK. Multi-device resume and offline-first patterns are first-class.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== IMPLICATIONS ============== -->
+<section class="bay" id="implications">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">08</span>Implications</div>
+    <h2 class="section-title">What you pick for, what you give up.</h2>
+    <p class="section-lede">
+      Each architectural choice is a bet about what matters most in the next ten thousand lines of code. Here are the bets these five harnesses are making — and the consequences they accept.
+    </p>
+
+    <div class="implication">
+      <div class="imp-head">
+        <h3>The loop primitive is the harness's debugging surface.</h3>
+        <div class="imp-tag">cross-cutting</div>
+      </div>
+      <ul>
+        <li><strong>Generators (Claude Code)</strong> make every state transition observable from the consumer — <em>but</em> stack traces become harder, and partial state across yields is a category of bug.</li>
+        <li><strong>Async channels (codex)</strong> are great for backpressure and explicit cancellation — <em>but</em> the message types proliferate, and the loop body becomes a giant <code>match</code>.</li>
+        <li><strong>Nested whiles (pi)</strong> are the most legible — <em>but</em> the event bus is your tracing tool, not the loop itself.</li>
+        <li><strong>Event subscriptions (opencode)</strong> separate UI thread from work thread cleanly — <em>but</em> retry semantics, ordering, and reconnection are now problems you own.</li>
+        <li><strong>Framework wrapper (code_puppy)</strong> is fast to ship — <em>but</em> you inherit the framework's loop semantics, and customization stops where Pydantic-AI's primitives stop.</li>
+      </ul>
+    </div>
+
+    <div class="implication">
+      <div class="imp-head">
+        <h3>Hook-based permissions trade defaults for flexibility.</h3>
+        <div class="imp-tag">safety</div>
+      </div>
+      <p>
+        pi and code_puppy push permission policy entirely into the application layer. The win is that any policy — user prompts, allowlists, external approval services, audit logging — composes naturally. The cost is that the <em>default</em> behavior is permissive: forget to wire a <code>beforeToolCall</code> hook and your agent will happily <code>rm -rf</code>.
+      </p>
+      <p>
+        Claude Code and opencode codify a small set of modes/rules; codex goes furthest and codifies OS-level enforcement. The more the harness chooses for you, the safer the default — and the harder it is to express unusual policies (e.g., "ask only when this regex matches").
+      </p>
+    </div>
+
+    <div class="implication">
+      <div class="imp-head">
+        <h3>Client/server is a deployment story, not a feature.</h3>
+        <div class="imp-tag">opencode</div>
+      </div>
+      <p>
+        Opencode's biggest architectural choice — running the agent loop client-side but state and tools server-side — is what makes multi-device resume, offline-first, and slow tools possible. None of those come for free; they require a server, an SDK contract, and an event subscription protocol.
+      </p>
+      <p>
+        Other harnesses can simulate parts of this (codex's rollouts let you resume; pi's JSONL lets you replay) but a true client/server split is a different category of product. You ship a service, not a binary.
+      </p>
+    </div>
+
+    <div class="implication">
+      <div class="imp-head">
+        <h3>Sandboxing is a one-way door.</h3>
+        <div class="imp-tag">codex</div>
+      </div>
+      <p>
+        Codex's Seatbelt/Landlock integration unlocks "full-auto" modes that the other harnesses cannot safely offer. The investment is real: profile authoring, per-OS implementation, env-var conventions, and a granular approval enum that distinguishes rules from sandbox enforcement.
+      </p>
+      <p>
+        For agents that need to run untrusted commands without human approval — CI, batch refactors, headless scripts — there is no substitute. For agents that have a human in the loop, the work may not pay for itself.
+      </p>
+    </div>
+
+    <div class="implication">
+      <div class="imp-head">
+        <h3>"Compaction is normal" vs "compaction is a button."</h3>
+        <div class="imp-tag">context</div>
+      </div>
+      <p>
+        Two postures exist. <strong>Hidden compaction</strong> (pi, code_puppy) treats it as an internal optimization — fires when needed, doesn't make a fuss. <strong>Observable compaction</strong> (Claude Code, opencode) treats it as a first-class user-visible event — Claude Code yields progress; opencode literally runs a separate agent to do it.
+      </p>
+      <p>
+        Visible compaction wins when users care about <em>why</em> the agent forgot something, because they can see the moment and the reason. Hidden compaction wins when the agent is mostly autonomous and the answer to "what got compacted?" is "irrelevant."
+      </p>
+    </div>
+
+    <div class="implication">
+      <div class="imp-head">
+        <h3>Sub-agent context isolation is a tax — and an investment.</h3>
+        <div class="imp-tag">delegation</div>
+      </div>
+      <p>
+        Claude Code's <code>Task</code> tool spawns a fresh agent with no parent context. The cost is token waste — the child re-reads what it needs. The benefit is enormous: the parent context stays small, and the child can explore a problem aggressively (read 50 files, run 100 greps) without polluting the main conversation. This is why Task is the only realistic way to research a large codebase without context death.
+      </p>
+      <p>
+        Opencode's <em>shared-session</em> sub-agent is the opposite bet — token-efficient, but exploration leaks into the main thread. The right call depends on whether your sub-agent's job is a delegated sub-problem or a coordinated workflow step.
+      </p>
+    </div>
+
+    <div class="implication">
+      <div class="imp-head">
+        <h3>"Minimal core" is itself a bet.</h3>
+        <div class="imp-tag">pi · code_puppy</div>
+      </div>
+      <p>
+        Pi and code_puppy both lean into "thin core, extend everything." Pi defers MCP, sub-agents, plan mode, and permissions to extensions. Code_puppy defers… nearly everything to its 50+ plugin hooks.
+      </p>
+      <p>
+        The bet is that ecosystems form. If they do, the core stays small and clean. If they don't, you end up writing every plugin yourself, and the "minimal core" becomes a TODO list rather than a feature. The biggest risk of this design is also its appeal: you have to build the rest.
+      </p>
+    </div>
+
+    <div class="implication">
+      <div class="imp-head">
+        <h3>The opinionated parts are where the value is.</h3>
+        <div class="imp-tag">conclusion</div>
+      </div>
+      <p>
+        The shared scaffolding — loop, tool dispatch, message history — is converging. Read all five and you will recognize the same skeleton everywhere. What differentiates these projects is the small set of opinionated choices stacked on top: Claude Code's partition-by-safety, codex's dual-approval + sandbox, opencode's client/server split, pi's hook-everywhere ethos, code_puppy's plugin proliferation.
+      </p>
+      <p>
+        If you are building a harness, the skeleton is table stakes. The opinions are the product. Decide what you believe about safety, observability, delegation, and persistence before you write the loop — because the loop will encode those beliefs whether you intend it to or not.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============== DEEP DIVE ============== -->
+<section class="bay" id="deepdive">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">09</span>Per-harness deep dive</div>
+    <h2 class="section-title">The full reading, one harness at a time.</h2>
+    <p class="section-lede">
+      Architecture maps for each harness, ten dimensions deep. Use the tabs to switch.
+    </p>
+
+    <div class="deepdive-tabs" role="tablist">
+      <button class="deepdive-tab active" data-h="pi" role="tab">pi</button>
+      <button class="deepdive-tab" data-h="codex" role="tab">codex</button>
+      <button class="deepdive-tab" data-h="cc" role="tab">Claude Code</button>
+      <button class="deepdive-tab" data-h="puppy" role="tab">code_puppy</button>
+      <button class="deepdive-tab" data-h="oc" role="tab">opencode</button>
+    </div>
+
+    <div class="deepdive-panel active" data-h="pi">
+      <h3>pi</h3>
+      <div class="dd-meta">TypeScript · earendil-works/pi · packages/coding-agent + agent + ai + tui</div>
+
+      <h4>Philosophy</h4>
+      <p>Minimalist composable runtime. The codebase is split across four npm packages so each is independently useful: <code>pi-ai</code> is just an LLM client; <code>pi-agent-core</code> is just a loop; <code>pi-tui</code> is just rendering; <code>pi-coding-agent</code> ties them together. The agent core is ~2K LOC. Everything beyond — MCP, sub-agents, plan mode, permission popups — is an extension.</p>
+
+      <h4>Loop</h4>
+      <p>Two stacked while loops in <code>agent-loop.ts</code>. The inner loop drives a single turn; the outer loop processes follow-up messages queued after the agent terminates. Steering (user input mid-turn) is detected at iteration boundaries.</p>
+<pre><code>while (followUpMessages.length > 0 || !terminated) {
+  while (steeringMessages.length > 0 || !turnEnded) {
+    const response = await lmFunc(...);  // streaming
+    if (toolCalls) await executeToolCalls(...);
+    // emit events: turn_start, message_*, tool_execution_*
+  }
+}</code></pre>
+
+      <h4>Tools</h4>
+      <p>Static list. Each tool can declare <code>executionMode: 'parallel' | 'sequential'</code>. Default is parallel via <code>Promise.all</code>. Hooks (<code>beforeToolCall</code>, <code>afterToolCall</code>) gate and transform invocations.</p>
+
+      <h4>Context</h4>
+      <p>JSONL log per session with a <code>parentId</code> field, giving native conversation branching. Compaction summarizes old turns via the LLM and writes a compaction record to the log — but original messages stay in the file for replay.</p>
+
+      <h4>Permissions</h4>
+      <p>No built-in policy. The <code>beforeToolCall</code> hook is the entire permission API.</p>
+
+      <h4>Sub-agents</h4>
+      <p>None native. Build them as tools whose handlers spawn a child loop.</p>
+
+      <h4>Standout</h4>
+      <p>Aggressive separation of concerns. The event-driven core is unusually clean — a future test harness or alternative UI just subscribes to the same event types the TUI does.</p>
+
+      <h4>Key files</h4>
+      <div class="file-list">
+        <span class="fp">packages/agent/src/agent-loop.ts</span><span class="fd">The two-while loop + tool dispatch</span>
+        <span class="fp">packages/agent/src/harness/agent-harness.ts</span><span class="fd">Session, resource loading, event aggregation</span>
+        <span class="fp">packages/agent/src/harness/compaction/compaction.ts</span><span class="fd">LLM-summarization compaction</span>
+        <span class="fp">packages/agent/src/harness/session/jsonl-storage.ts</span><span class="fd">Append-only branching session store</span>
+        <span class="fp">packages/ai/src/index.ts</span><span class="fd">Multi-provider LM abstraction (LMFunction)</span>
+        <span class="fp">packages/coding-agent/src/tools/</span><span class="fd">read, write, edit, bash, grep, find, ls</span>
+        <span class="fp">packages/tui/src/index.ts</span><span class="fd">Differential TUI rendering</span>
+      </div>
+    </div>
+
+    <div class="deepdive-panel" data-h="codex">
+      <h3>codex</h3>
+      <div class="dd-meta">Rust · openai/codex · codex-rs/core/src/session/*</div>
+
+      <h4>Philosophy</h4>
+      <p>Safety-first. Rust for memory safety and crisp concurrency primitives; OS-level sandboxing for untrusted command execution; explicit context passing instead of thread-locals. The architecture pays the up-front cost of more types and more files in exchange for an agent you can safely automate.</p>
+
+      <h4>Loop</h4>
+      <p>A tokio task running <code>submission_loop</code> pulls <code>Submission</code> messages off an <code>async_channel</code> and pattern-matches the operation. <code>UserInput</code> spawns a fresh <code>run_turn</code> task carrying an immutable <code>Arc&lt;TurnContext&gt;</code>. Multiple turns can run concurrently without aliasing state.</p>
+
+      <h4>Tools</h4>
+      <p>The <code>ToolRouter</code> is rebuilt every turn from MCP tools (queried live), plugins (re-evaluated against current config), and accessible connectors. Tools awaiting OAuth sit in a <em>deferred</em> bucket. <code>FuturesOrdered</code> + <code>tokio::select!</code> multiplex tool execution against the streaming response.</p>
+
+      <h4>Context</h4>
+      <p>Three compaction triggers: pre-sampling, mid-turn (token exhaustion during a stream), and post-sampling. The <code>AutoCompactWindow</code> distinguishes <code>ServerObserved</code> prefill (authoritative) from <code>Estimated</code> (client guess) so the budget is accurate even during streaming.</p>
+
+      <h4>Permissions</h4>
+      <p>The <code>AskForApproval::Granular { allows_rules_approval, allows_sandbox_approval }</code> variant separates allowlist policy from OS confinement. A command can be allow-listed but still confined; or sandbox-exempt but approval-gated.</p>
+
+      <h4>Sandboxing</h4>
+      <p>Seatbelt on macOS, Landlock + seccomp on Linux. Selection happens via env-var injection at spawn — <code>CODEX_SANDBOX_ENV_VAR="seatbelt"</code> tells the sandbox runtime to apply the appropriate profile. Network-disabled mode is its own env var. Decoupling policy from enforcement keeps the sandbox runtime independent.</p>
+
+      <h4>Sub-agents</h4>
+      <p>An <code>AgentRegistry</code> per session tracks every spawned child. Slot reservation enforces depth limits; policy inherits from parent; each agent gets a human-readable nickname for logs.</p>
+
+      <h4>Persistence</h4>
+      <p>Rollouts are append-only event logs. Reconstruction <em>scans backward</em> from the end of the log to find the most recent compaction checkpoint, then replays only events after it — O(recent activity), not O(history).</p>
+
+      <h4>Key files</h4>
+      <div class="file-list">
+        <span class="fp">codex-rs/core/src/session/handlers.rs</span><span class="fd">submission_loop — central message dispatcher</span>
+        <span class="fp">codex-rs/core/src/session/turn.rs</span><span class="fd">Per-turn execution, sampling, ToolRouter assembly</span>
+        <span class="fp">codex-rs/core/src/state/turn.rs</span><span class="fd">TurnContext — 50+ immutable fields per turn</span>
+        <span class="fp">codex-rs/core/src/exec_policy.rs</span><span class="fd">AskForApproval enum incl. Granular variant</span>
+        <span class="fp">codex-rs/core/src/state/auto_compact_window.rs</span><span class="fd">ServerObserved vs Estimated prefill tracking</span>
+        <span class="fp">codex-rs/core/src/sandboxing/</span><span class="fd">Seatbelt + Landlock env-var injection</span>
+        <span class="fp">codex-rs/core/src/agent/registry.rs</span><span class="fd">Sub-agent registry with spawn slots</span>
+        <span class="fp">codex-rs/rollout-trace/</span><span class="fd">Event-log persistence + reverse reconstruction</span>
+      </div>
+    </div>
+
+    <div class="deepdive-panel" data-h="cc">
+      <h3>Claude Code</h3>
+      <div class="dd-meta">TypeScript · reverse-engineered · src/query.ts</div>
+
+      <h4>Philosophy</h4>
+      <p>Streaming-first. The loop is an async generator so the consumer (UI, test, telemetry) sees every state transition as an event without polling. Every long-running operation — tool calls, compaction, even error recovery — happens at a yield boundary, which means cancellation is just "stop iterating."</p>
+
+      <h4>Loop</h4>
+      <p><code>async function* queryLoop()</code> at <code>query.ts:241</code> with <code>while (true)</code> at line 307. State (messages, tool context, compaction tracking, turn count) is destructured at the top of each iteration, mutated, re-bundled, and re-entered. Every interesting event is yielded.</p>
+<pre><code>async function* queryLoop(params, consumedUuids) {
+  // mutable State { messages, toolUseContext, autoCompactTracking, ... }
+  while (true) {
+    for await (const ev of sendMessage(...)) yield ev;
+    if (inputTokens > threshold) yield* compact(state);
+    if (toolUseBlocks.length) yield* runTools(state);
+    if (response.stop_reason === "end_turn") return Terminal{...};
+  }
+}</code></pre>
+
+      <h4>Tools</h4>
+      <p>Static list, gated by a Bun <code>feature()</code> macro and <code>USER_TYPE</code> env. Each tool exposes <code>isConcurrencySafe(input)</code>; the dispatcher batches consecutive safe tools into parallel groups (capped at 10) and runs anything write-y serially. Schemas are Zod.</p>
+<pre><code>// partition by safety, max 10 parallel
+toolUses.reduce((batches, t) => {
+  const safe = isConcurrencySafe(t);
+  if (safe && last.safe) last.push(t); else newBatch(safe, t);
+});</code></pre>
+
+      <h4>Context</h4>
+      <p>Four named compaction strategies — <em>autocompact</em> (LLM summary of old turns), <em>microcompact</em> (output-token exhaustion recovery), <em>snip</em> (trim oversized tool results), <em>collapse</em> (last resort). Every step yields a <code>CompactProgressEvent</code> so the user sees the prompt being engineered.</p>
+
+      <h4>Permissions</h4>
+      <p>Tools declare a <code>ToolPermissionMode</code> ∈ {<code>default</code>, <code>acceptEdits</code>, <code>bypassPermissions</code>, <code>plan</code>}. A <code>canUseTool(name, input)</code> callback runs before every invocation; the host decides whether to prompt, auto-accept, or deny. Plan mode is structurally distinct — the agent describes intent without executing.</p>
+
+      <h4>Sub-agents</h4>
+      <p>The <code>Task</code> tool spawns a fresh agent with isolated context, optionally restricted to a subdirectory or sandbox mode. The child's final output is the tool result; intermediate state never bleeds into the parent.</p>
+
+      <h4>Persistence</h4>
+      <p>A JSON file per session in <code>~/.claude/projects/&lt;project-id&gt;/sessions/</code>. Plus per-project <code>CLAUDE.md</code> memory files discovered via directory walk on init.</p>
+
+      <h4>Key files</h4>
+      <div class="file-list">
+        <span class="fp">src/query.ts</span><span class="fd">queryLoop generator, compaction triggers, stream consumption</span>
+        <span class="fp">src/services/tools/toolOrchestration.ts</span><span class="fd">partitionToolCalls — concurrency-safety batching</span>
+        <span class="fp">src/services/tools/toolExecution.ts</span><span class="fd">Per-tool execution incl. canUseTool gate</span>
+        <span class="fp">src/Tool.ts</span><span class="fd">Tool type + ToolPermissionMode + CanUseToolFn</span>
+        <span class="fp">src/tools.ts</span><span class="fd">getAllBaseTools — static list w/ feature gates</span>
+        <span class="fp">src/context.ts</span><span class="fd">System context assembly + git status snapshot</span>
+        <span class="fp">src/utils/claudemd.js</span><span class="fd">CLAUDE.md discovery + memory injection</span>
+      </div>
+    </div>
+
+    <div class="deepdive-panel" data-h="puppy">
+      <h3>code_puppy</h3>
+      <div class="dd-meta">Python · mpfaffenberger/code_puppy · built on Pydantic-AI</div>
+
+      <h4>Philosophy</h4>
+      <p>Thin shell on a thick framework. Pydantic-AI provides the loop and tool primitives; code_puppy adds plugin infrastructure, MCP integration, retry semantics, and a TUI. The golden rule (in <code>AGENTS.md</code>): extend via plugins, not by modifying core.</p>
+
+      <h4>Loop</h4>
+      <p><code>run_with_mcp()</code> in <code>_runtime.py</code> orchestrates: prune interrupted tool calls from history, load MCP servers, build the Pydantic-AI agent, invoke <code>run_stream</code>, retry on transient errors. The retry decorator is the most distinctive piece — it matches on error substrings (<code>rate_limit</code>, <code>overloaded</code>, <code>RemoteProtocolError</code>, <code>ReadTimeout</code>) and re-enters streaming without losing position.</p>
+
+      <h4>Tools</h4>
+      <p>Two-pass registration to handle MCP name collisions. First pass: build a dummy Pydantic-AI agent with no toolsets and inspect <code>_tools</code> for native names. Second pass: load MCP servers, drop colliders, and rebuild the real agent.</p>
+<pre><code>dummy = PydanticAgent(model, toolsets=[])
+existing = {t.name for t in dummy._tools}
+mcp = filter_conflicting(load_mcp_servers(name), existing)
+real = PydanticAgent(model, toolsets=[*native, *mcp])</code></pre>
+
+      <h4>Context</h4>
+      <p>An <code>_history.py</code> module provides token estimation, hash-based dedup, and orphan pruning — removing incomplete tool-call sequences so a re-entered conversation doesn't trip on malformed history. <code>_compaction.py</code> summarizes with a protected token count for system + recent messages.</p>
+
+      <h4>Permissions</h4>
+      <p>50+ plugin hooks defined in <code>callbacks.py</code> — startup, shutdown, invoke_agent, load_prompt, run_shell_command, file_permission, pre_tool_call, post_tool_call, stream_event, and many more. Permissions are implemented as plugins, not as harness primitives.</p>
+
+      <h4>Sub-agents</h4>
+      <p>Subclassing <code>BaseAgent</code>. Each instance gets a unique identity (<code>{name}-{id[:6]}</code>) for coordination. History is per-agent — no shared mutable state.</p>
+
+      <h4>Providers</h4>
+      <p>Per-agent model pinning falls back to a global default, then cascades through a configured list. Robust to API outages at the cost of mid-conversation model swaps changing the agent's behavior subtly.</p>
+
+      <h4>Key files</h4>
+      <div class="file-list">
+        <span class="fp">code_puppy/agents/_runtime.py</span><span class="fd">run_with_mcp — prep, retry, stream</span>
+        <span class="fp">code_puppy/agents/_builder.py</span><span class="fd">Two-pass agent + tool registration</span>
+        <span class="fp">code_puppy/agents/base_agent.py</span><span class="fd">Abstract base; one concrete subclass per agent</span>
+        <span class="fp">code_puppy/agents/_history.py</span><span class="fd">Token est, hash, orphan pruning</span>
+        <span class="fp">code_puppy/agents/_compaction.py</span><span class="fd">Summarize with protected window</span>
+        <span class="fp">code_puppy/callbacks.py</span><span class="fd">50+ plugin hook phases</span>
+        <span class="fp">code_puppy/tools/__init__.py</span><span class="fd">Tool registration + TOOL_EXPANSIONS</span>
+        <span class="fp">AGENTS.md</span><span class="fd">The plugin contract; the golden rule</span>
+      </div>
+    </div>
+
+    <div class="deepdive-panel" data-h="oc">
+      <h3>opencode</h3>
+      <div class="dd-meta">TypeScript (Bun) + Go TUI · sst/opencode · packages/opencode</div>
+
+      <h4>Philosophy</h4>
+      <p>Client/server by design. The agent loop runs on the client (so it can be a CLI, a TUI, a web UI, a Slack adapter, …) but session state, message history, and tool execution live server-side. The Agent Control Protocol (ACP) is the contract between them.</p>
+
+      <h4>Loop</h4>
+      <p>The client's <code>prompt()</code> creates a message via SDK, then awaits a <code>message.part.completed</code> event. In between, <code>permission.asked</code> events arrive for tool calls — the client decides yes/no and replies with <code>approveTool</code>/<code>ignoreTool</code>. The actual work happens in <code>session/processor.ts</code> server-side.</p>
+<pre><code>// client side
+async prompt(input) {
+  const msg = await sdk.message.create({sessionId, input});
+  return new Promise(resolve => {
+    events.subscribe(e => {
+      if (e.type === 'message.part.completed' && e.id === msg.id) {
+        resolve(e.data);
+      }
+    });
+  });
+}</code></pre>
+
+      <h4>Tools</h4>
+      <p>Server-side dispatch. Per tool call, the server emits <code>permission.asked</code>; the client responds. Tools transition through a 5-state machine: <code>pending</code> → <code>running</code> → <code>completed | error | ignored</code>. Long-running tools stream deltas via <code>message.part.delta</code>.</p>
+
+      <h4>Context</h4>
+      <p>Compaction is its own agent variant. When the threshold trips, the harness invokes <code>getAgentVariant('compaction').prompt(history)</code> and replaces old messages with the result via <code>sdk.message.replace</code>. Same primitives all the way down.</p>
+
+      <h4>Permissions</h4>
+      <p>Three rules per tool: <code>once</code>, <code>always</code>, <code>reject</code>. Effective rule comes from a three-way merge: global defaults ← variant defaults ← user overrides. Sub-agents run in <code>subagent</code> mode, which silently strips write tools.</p>
+
+      <h4>Sub-agents</h4>
+      <p>Variants: <code>build</code>, <code>plan</code>, <code>explore</code>, <code>scout</code>, <code>general</code>, <code>compaction</code>. Sub-agents share the parent session — they see and append to the same message stream — but are constrained by mode-restricted tool access.</p>
+
+      <h4>Providers</h4>
+      <p>Multi-provider via the SDK. The killer feature: you can switch models <em>mid-session</em> and keep the full history intact, because conversation state is server-state.</p>
+
+      <h4>Key files</h4>
+      <div class="file-list">
+        <span class="fp">packages/opencode/src/acp/agent.ts</span><span class="fd">Client-side Agent — event subscription, permission flow</span>
+        <span class="fp">packages/opencode/src/session/processor.ts</span><span class="fd">Server-side message processing loop</span>
+        <span class="fp">packages/opencode/src/session/compaction.ts</span><span class="fd">Compaction variant invocation</span>
+        <span class="fp">packages/opencode/src/session/tools.ts</span><span class="fd">Tool registry &amp; routing</span>
+        <span class="fp">packages/opencode/src/agent/agent.ts</span><span class="fd">Variant definitions, permissions</span>
+        <span class="fp">packages/opencode/src/acp/session.ts</span><span class="fd">Local session state cache</span>
+        <span class="fp">packages/opencode/AGENTS.md</span><span class="fd">Architectural principles</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p><strong style="color:var(--text-2);">Sources.</strong> This reading covers five open codebases:
+      <a href="https://github.com/earendil-works/pi/tree/main/packages/coding-agent">pi</a> ·
+      <a href="https://github.com/openai/codex">codex</a> ·
+      <a href="https://github.com/chauncygu/collection-claude-code-source-code">claude-code (reverse-engineered)</a> ·
+      <a href="https://github.com/mpfaffenberger/code_puppy">code_puppy</a> ·
+      <a href="https://github.com/anomalyco/opencode">opencode</a>.
+      Repos cloned locally at <code style="color:var(--text-2)">~/code/agent-harness/repos/</code>. Full per-harness reports in <code style="color:var(--text-2)">~/code/agent-harness/research/</code>.</p>
+    <p>Architecture maps were generated by parallel read-only exploration agents; key file paths and patterns were spot-verified against the source. The Claude Code variant analyzed is the reverse-engineered version in the collection-claude-code-source-code repo — the patterns described match the published reverse-engineering, though specific line numbers may drift across forks.</p>
+    <p style="color:var(--text-3);margin-top:24px;">Built as a research artifact, not a benchmark. The "right" choice among these patterns depends entirely on what you're optimizing for.</p>
+  </div>
+</footer>
+
+</main>
+
+<script>
+  // Deep-dive tab switching
+  const tabs = document.querySelectorAll('.deepdive-tab');
+  const panels = document.querySelectorAll('.deepdive-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const h = tab.dataset.h;
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.h === h));
+    });
+  });
+</script>
+
+</body>
+</html>
