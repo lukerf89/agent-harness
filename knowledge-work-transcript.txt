@@ -1,0 +1,231 @@
+ANATOMY OF A KNOWLEDGE-WORK AGENT HARNESS
+A LISTENABLE REPORT
+
+Notes for narration in ElevenLabs:
+This transcript is broken into ten chapters with delimiter lines like "=====". Each chapter is under ten thousand characters, so it should fit in a single ElevenLabs generation. Paste one chapter at a time; do not include the delimiter lines or the chapter labels themselves in the narration — those are only for you to find the splits. Acronyms have been written out the first time they appear. Code, file paths, and command snippets have been translated into natural language. Total spoken length is roughly twenty-five to thirty minutes.
+
+=====
+CHAPTER ONE — WHY KNOWLEDGE WORK NEEDS A DIFFERENT HARNESS
+
+Coding agent harnesses are the closest thing the field has to reference architectures for agents. There are five of them studied in this report — pi, Claude Code, codex, code puppy, and opencode — and between them they have shaken out most of the obvious primitives. The shape of the inner loop, the way tools get dispatched and approved, how context gets compacted when the window fills, how state survives a restart, how sub-agents get spawned. The first time you read one of these codebases, you assume it is one of many possible designs. The fifth time, you realize there is a converging vocabulary.
+
+But the vocabulary is not the blueprint. And if you take any one of those five harnesses and naively port it to a different problem — say, research synthesis, document drafting, inbox triage, scheduling, customer correspondence — you will quietly degrade three things that the original design got away with ignoring. Safety. Observability. And recall.
+
+This report is about that gap. It names the three ways knowledge work is architecturally different from coding work. It proposes six load-bearing decisions that follow from those differences, and for each decision it cites which of the five coding harnesses inspired which piece. And it identifies four problems that no coding harness solves — because coding-agent authors have not had to face them.
+
+The shortest version of the answer, if you are pressed for time: borrow the loop shape from Claude Code, borrow the persistence format from pi, borrow the permission granularity from codex, borrow the agent variant model from opencode, and borrow the external tool integration patterns from code puppy. That gets you the skeleton for free. What you actually have to build — and what no coding-agent author has shipped — is cross-session semantic memory, proactive long-horizon loops, source provenance that survives synthesis, and a draft-refine cycle as a first-class state. Those four are not features. They are the architectural commitments that decide whether the agent you are building is a chat interface or a colleague.
+
+The rest of this report unpacks each piece in turn. We will start with the three differences, then walk through the six decisions, then sit on the four gaps. And we will keep returning to the five coding harnesses for grounding, because they are the only reference architectures the field has.
+
+=====
+CHAPTER TWO — THE VERIFICATION ASYMMETRY
+
+The first thing that breaks when you move from coding work to knowledge work is verification.
+
+A coding agent is anchored to ground truth. There is a compiler. There is a linter. There is a type checker. There is a test runner. There is, at minimum, the next tool call that will return an error if the file you just wrote is malformed. These signals are fast, brutal, and unambiguous. They travel at the speed of continuous integration — sometimes seconds, sometimes minutes, but always finite.
+
+Look at Claude Code's main loop, which is implemented as an asynchronous generator. The reason that loop can emit edits with such confidence — write this file, modify that line, run this command — is that the environment will answer back almost immediately. If the change broke something, the next tool result will say so. If the change worked, the next tool result will confirm it. The agent is in a tight feedback dialog with a deterministic substrate, and that substrate does most of the verification for it.
+
+A knowledge-work agent has none of this. There is no compiler for a research synthesis. There is no test suite for a draft of the quarterly board update. There is no linter for the email you are about to send. Verification, in knowledge work, is human, slow, and approximate. A user reads what you produced, decides whether it is right, and tells you. Sometimes the user is not even sure.
+
+This one fact reshapes everything downstream of the loop.
+
+First, tool results are not self-validating. When a coding agent calls a tool to read a file, the result is, in some sense, ground truth — the file either exists or it does not. When a knowledge agent calls a tool to read an email thread, the result is just text. Whether that text is the right text, whether it represents the user's actual situation, whether the conclusions drawn from it are sound — none of that is decidable from the tool call alone.
+
+Second, and this is the architectural implication, the "did it work" check has to be modeled into the loop itself. Not as a property of the environment. As a property of the harness. That means critique sub-agents that read drafts looking for unsupported claims and missing citations. It means draft-and-refine cycles that explicitly route deliverables past the user before they go anywhere irreversible. It means human checkpoints baked into the long-horizon flow, not as an interruption but as a load-bearing primitive.
+
+Third, latency tolerance changes. Coding agents are interactive — the user is at the terminal, waiting for the next thing to appear. Knowledge work often runs for hours or days. A research project. A multi-week inbox cleanup. A long customer correspondence. The loop has to survive process restarts, network blips, the user closing the laptop, and the user coming back three days later expecting it to remember where it was.
+
+The verification asymmetry is the first reason a knowledge-work harness cannot just inherit the coding-harness skeleton wholesale. The substrate that was doing the verification work is gone. Something else has to do it, and that something has to be inside the harness, not outside.
+
+=====
+CHAPTER THREE — THE BLAST RADIUS ASYMMETRY
+
+The second thing that breaks is the blast radius of agent actions.
+
+When you read the permission models in the five coding harnesses, you can feel the worldview they were designed for. Codex has an enumeration called ask-for-approval, and its variants are things like "never," "on failure," "on request," "unless trusted," and "granular." The granular version separates rules approval — does this command match the allowlist — from sandbox approval — should the operating system actually restrict what the command can do. Opencode has a three-tier permission rule: once, always, or reject. Claude Code has permission modes called default, accept-edits, bypass-permissions, and plan.
+
+These are all reasonable. They are also all tuned for a specific worldview, which is that the worst case action a coding agent can take is modifying a file on the local filesystem. Delete the wrong file? Recover from version control. Push a broken commit? Push a fix. Run an expensive build? Wait it out. The friction of confirming every individual action would be intolerable, because the underlying action population is almost entirely recoverable. So coding-harness permission models are tuned for friction-minimization on a base rate of low-stakes operations.
+
+Knowledge work has a different action distribution. The majority of tool calls are still cheap and read-only — search the inbox, fetch the document, query the customer relationship management system, look up a meeting on the calendar. Those should be auto-allowed, silently. A coding-style permission model handles them fine.
+
+The problem is the small minority of actions that are not like the rest. Sending an email to the wrong person. Posting to a Slack channel that has the wrong audience. Sharing a document publicly when it was supposed to be private. Scheduling a meeting that triple-books the chief executive officer. Closing a customer support ticket that should have been escalated. These actions are not slightly worse than the others. They are categorically different. They are not undoable in the same way a file edit is undoable. They are socially expensive, sometimes legally consequential, and in some cases they are the kind of mistake that a user will not forgive an automated system for.
+
+The right architectural move is to recognize that asymmetry, not to flatten it. A knowledge-work harness needs four blast-radius classes, not one.
+
+Class one is reads. Auto-allow, silent, no friction.
+
+Class two is local drafts — creating a draft email, saving a scratch note, writing a working document. Auto-accept, maybe with a passive notification so the user knows it happened.
+
+Class three is external sends — sending the email, posting the Slack message, sharing the document, scheduling the meeting. Always ask. Always preview. The preview is not optional, and it is not a confirmation dialog with a summary. It is the actual content the user is about to put into the world. Claude Code's plan mode already prefigures this — execute in dry-run before committing — and for knowledge work, plan mode is not an optional opt-in. It is the default for any external-send action.
+
+Class four is destructive — deleting a record, canceling an event, archiving a thread, removing a permission. Always ask, with a diff and a rollback path. These are rare, but when they occur they need maximum scrutiny.
+
+The repetition problem is real. A user approving "send email to Bob" once should not have to approve it forty more times in the same session. That is where opencode's three-tier model — once, always, reject — earns its keep. Approve once for this thread. Approve always for this contact. Or reject and remember the rejection. Without that tier, granular permissions become unusable; with it, they stay humane.
+
+=====
+CHAPTER FOUR — THE SOURCE-OF-TRUTH ASYMMETRY
+
+The third difference is the most insidious of the three, because it is invisible at first and then it dominates everything.
+
+A coding agent has the filesystem. It has the git repository. Between those two artifacts, it has a complete picture of the project. Anything not in the filesystem or git is, by definition, not part of the work. Claude Code's system context function reads the current git status and confidently injects it into the prompt because git is ground truth. If you want to know what changed, run git log. If you want to know what files exist, run find. If you want to know what a function does, read its source. The repository is authoritative, and the conversation is a scratchpad layered over it.
+
+Knowledge work has no such substrate. The relevant facts live everywhere and nowhere. They live in a Slack thread from three weeks ago. They live in a Notion document whose latest version is in someone's local draft because they forgot to publish. They live in an Airtable record that was updated yesterday by a colleague. They live in an email reply you have not read yet. They live in the conversation you are currently having with the agent.
+
+That last one is the killer. In knowledge work, the conversation itself is often the artifact. It is not a scratchpad you discard at the end. It is the thing that produced the value. Decisions get made in conversation. Drafts get refined in conversation. Plans get formalized in conversation. If you treat the conversation as ephemeral — as a transient buffer to be compacted and discarded — you are discarding the actual output of the work.
+
+This single asymmetry is what most decisively breaks the coding-harness inheritance. Look at how the five coding harnesses handle memory. Pi compacts its conversation by asking the language model to summarize the oldest messages, then writes a compaction record. Claude Code has a four-tier cascade — autocompact, microcompact, snip, context collapse — each one shedding more aggressively when the previous tier fails. Codex tracks token budgets with both server-observed counts and client-side estimates, and triggers compaction at three different points in the loop. Code puppy has a summarize function with protected recent exchanges. Opencode treats compaction as a first-class sub-agent variant.
+
+Every one of these is a sliding window. Every one of these is lossy compression. And every one of these is fine for coding work, because the repository is the real memory and the conversation is just the working buffer.
+
+In knowledge work, you cannot afford that. You need three tiers of memory, not one.
+
+The first tier is working context — the current turn, in full fidelity, the way coding harnesses already handle it.
+
+The second tier is session memory — an append-only log of the full conversation, branchable, fork-friendly, the way pi handles its session storage with a parent identifier on each record so you can spawn alternate timelines.
+
+The third tier is persistent memory — semantic retrieval across sessions, with embeddings, with provenance metadata on every fragment, with staleness signals so a six-month-old fact about current project deadlines does not get trusted blindly.
+
+None of the five coding harnesses do the third tier. They lean on filesystem reads because that is adequate for code. For knowledge work it is not adequate. It is the biggest single architectural gap in the whole space.
+
+=====
+CHAPTER FIVE — DECISION ONE, THE LOOP
+
+With the three differences named, we can start building. Six decisions follow from them. The first is the shape of the agent loop itself.
+
+The right answer here is to borrow from Claude Code, and then layer pi on top.
+
+Claude Code's loop is implemented as an asynchronous generator named query-loop. Inside that function is a single endless while loop that yields at every interesting state transition. It yields when a chunk of model output arrives. It yields when a tool runs. It yields when compaction starts and again when it finishes. It yields when the turn ends. The consumer of the agent — the user interface, but also any test or telemetry sink — can iterate over those yields and react to the agent's life in real time, without polling, and without any of the state being hidden inside the loop.
+
+That pattern is not just convenient. For knowledge work, it is essential. Coding feels fast because tool calls return in milliseconds — grep against a hundred files completes before you notice. Knowledge work is opaque. A thirty-minute deep-research task gives the user nothing to look at. A two-hour email triage session is invisible. The yield boundary is the only opportunity to surface machinery — sub-agent progress, tool-call rationale, citation grounding, draft revisions in flight — to a user who would otherwise just stare at a spinner. Showing the work matters more when verification is slow, not less.
+
+The other piece comes from pi. Pi's loop is structured as two nested while loops, and the structure of that nesting encodes an important distinction. The inner loop handles a single turn — call the model, run tools, repeat until the model emits no more tool calls. The outer loop handles two different kinds of queued user input. Steering messages, which are user input delivered during agent execution — checked after each tool call, processed in the next iteration of the inner loop, allowing interrupt-like behavior. And follow-up messages, which are user input queued after the agent terminates — processed in the next iteration of the outer loop, automatically continuing the conversation.
+
+For knowledge work, both of those queues are load-bearing. An hours-long research thread cannot be restarted every time the user says "wait, also check the 2023 numbers." That needs to be steering — handled mid-flight, without losing the in-progress synthesis. A user who comes back the next morning and types "by the way, can you also look at competitor X" needs that to be a follow-up — automatically continuing the prior conversation, with all its context, without forcing the user to remember what they were in the middle of.
+
+Put those two patterns together and you get a loop that looks something like this. An outer while loop that runs as long as there are queued follow-ups or the conversation has not been explicitly terminated. Inside it, an inner while loop that runs as long as there are queued steering messages or the current turn has not ended. Inside that, an asynchronous generator that yields stream events as the turn progresses, yields compaction progress when the token budget gets tight, and applies any steering messages before the next iteration. When the inner loop exits, the outer loop consumes the next follow-up and starts a new turn.
+
+This is the shell. Everything else — tools, sub-agents, permissions, memory — plugs into the yield boundaries and the hooks around them.
+
+=====
+CHAPTER SIX — DECISION TWO, LAYERED MEMORY
+
+The second decision is where the coding-harness inheritance breaks down hardest, and where the most actual engineering investment goes.
+
+All five coding harnesses treat memory the same way. A sliding window of conversation, compacted when it fills, plus an optional static instruction file that lives in the project — Claude Code calls it claude markdown, opencode and code puppy call it agents markdown. The file is read once at startup and injected into the system prompt. That is the entire memory architecture.
+
+This works for coding because, again, the repository is ground truth. When the agent needs to remember what a function does, it re-reads the function. When it needs to remember what the project structure looks like, it lists the directory. The conversation is a scratchpad. Compaction is fine.
+
+In knowledge work, the conversation is the substrate. Compaction is lossy compression of the only copy. And the static instruction file is wildly inadequate as a memory store — it is one file, written by hand, with no retrieval, no scoring, no provenance, no contradiction handling, no staleness.
+
+The right design is three tiers, and the third tier is net new.
+
+Tier one is working context — the current turn at full fidelity. Borrow Claude Code's compaction cascade here. Autocompact summarizes old turns when the input gets too large. Microcompact trims aggressively when the output token budget is about to exhaust mid-turn. Snip selectively truncates oversized tool outputs — a giant search result, a huge document — before they bloat the history. Context collapse is the nuclear option. All four happen at yield boundaries, so the user sees them happening and can intervene if the wrong thing is about to be forgotten.
+
+Tier two is session memory — the full conversation, append-only, branchable. Borrow pi's design here. Sessions live in a per-user directory as line-delimited JavaScript object notation files. Each line is one record. Each record has an identifier and an optional parent identifier, which means branching is implicit in the file format — you fork a session by writing new records that point back at the same parent. The full history is never deleted from disk. Compaction writes a summary record into the log, but the original messages remain available for any branch that wants them. JavaScript object notation in line-delimited form is human-readable, version-control-friendly, safe for concurrent appends, and trivially forkable. It is the right substrate.
+
+Tier three is persistent memory — and this is the one nobody has shipped. You need an embedding store over every artifact, every decision, every draft, every turn-level snippet that might ever be relevant again. You need retrieval triggered automatically at the start of each turn, conditioned on the current question, returning the top relevant fragments from across all prior sessions. You need provenance on every fragment — which session it came from, which source it cited, when it was stated, by whom, and whether it has since been contradicted. And you need staleness signals, because a memory from six months ago saying "the deadline is May 15" cannot be trusted blindly today.
+
+None of the five coding harnesses do any of this. The closest analog is the static instruction file, which is static and global — no retrieval, no scoring, no provenance. For knowledge work, that is not even close to enough. The persistent memory tier is the single most architecturally consequential thing to build.
+
+=====
+CHAPTER SEVEN — DECISION THREE, BLAST-RADIUS PERMISSIONS
+
+The third decision is permissions, and the move here is to borrow codex's shape, reframe the axes for the knowledge-work blast-radius distribution, and layer opencode's three-tier user experience on top.
+
+Codex's granular approval configuration in its execution-policy module is the right structural primitive. It separates two independent axes of approval — rules approval, which is allowlist matching, and sandbox approval, which is operating-system-level confinement. The granular variant lets you require sandbox approval but not rules approval, or vice versa. Two independent toggles, two independent policies.
+
+The structural separation is right. The axes themselves need to change. For knowledge work, the axes are not allowlist versus sandbox. They are reversibility and externality. The four classes I named earlier — reads, drafts, sends, destroys — are the operational shape this takes.
+
+Reads — searching the inbox, fetching a document, querying the customer database, looking up a calendar event — are auto-allow, silent. There is no reason to bother the user. The result of a read is information, and information is recoverable.
+
+Drafts — creating a draft email, saving a scratch note, writing a working document, generating an option set for the user to choose from — are auto-accept, but visible. Notify the user that a draft was created. Maybe show a toast. The user should know a draft exists, but should not have to confirm it.
+
+Sends — sending the email, posting to Slack, sharing the document, scheduling the meeting — are always ask, always preview. The preview is the load-bearing part. It is not a confirmation dialog with a one-line summary. It is the full content of the action being taken, rendered the way the recipient will see it. The user reads the actual email body before clicking send. They see the actual Slack message with its actual mentions. They see the actual calendar invite with its actual attendees. Plan mode from Claude Code is the inspiration here — execute in dry-run before committing — but for knowledge work this is not optional. It is the default for everything in the send class.
+
+Destroys — deleting a record, canceling an event, archiving a thread — are always ask, with diff and rollback. The user sees what is about to disappear, sees what the state will look like after, and gets a path back if they change their mind.
+
+Opencode's three-tier rule — once, always, reject — is the repetition handler. Once means: approve this specific instance. Always means: approve this entire class. Reject means: do not ask again, the answer is no. The user can scope approvals to a thread, to a contact, to a session, or to forever. Without that tier, granular permissions become a thousand-confirmation hellscape. With it, they stay manageable.
+
+The most important thing to internalize about this design is that preview is part of the permission user experience, not a separate feature. The action you are about to take is the thing the user should see. Not its description. Not its arguments. Not a tool call rendered as a code block. The actual rendered output the world is about to see. If you build the permission system around that idea, everything else falls into place.
+
+=====
+CHAPTER EIGHT — DECISIONS FOUR AND FIVE, TOOLS AND VARIANTS
+
+Decisions four and five are about the surfaces the agent uses to act and to think.
+
+The fourth decision is the tool surface, and the answer is: lean hard on the Model Context Protocol, and steal two implementation patterns from the coding harnesses.
+
+Knowledge-work tools live almost entirely in software-as-a-service. Gmail. Notion. Linear. Drive. Calendar. Slack. Airtable. Jira. Sentry. The Model Context Protocol — a standard for how external tool servers expose tools to agents — has already become the lingua franca for surfacing these as agent-callable functions. So the foundation is set: you do not write the tool integrations yourself, you connect to the Model Context Protocol servers and let them tell you what tools they expose.
+
+The two patterns worth stealing handle the two operational problems with Model Context Protocol integration.
+
+The first problem is name collisions. Two Model Context Protocol servers might each expose a tool called search. Without intervention, they silently shadow each other, and the agent uses the wrong one with no obvious failure mode. Code puppy solves this with a two-pass registration. In the first pass, it builds a dummy agent with no external tools and asks what native tool names exist. In the second pass, it loads the external Model Context Protocol servers, filters out any whose tool names collide with the natives, and rebuilds the real agent with the deconflicted set. This is automatic, requires no manual configuration, and prevents an entire class of silent failures.
+
+The second problem is volatility. The set of available tools changes over time. A user might connect their Gmail account mid-session. An authentication scope might expire and need a re-grant. A new workspace might be added. A Model Context Protocol server might go offline. Codex handles this by rebuilding its tool router every single turn — re-querying every connected server, re-evaluating every plugin, reassembling the router from scratch. It costs work per turn, but it means tool availability is always current and the agent never thinks it has a tool it does not have. Cache for the duration of the turn, not across turns.
+
+The fifth decision is sub-agents, and here the answer is to borrow opencode's variant model wholesale.
+
+Opencode does not spawn child processes for sub-agents. It does not isolate them. It defines a small fixed set of agent variants, each with its own system prompt and its own permission rules. The variants in the coding harness are called build, plan, explore, and compaction. Each one is the same agent code, just configured differently for a specific kind of work.
+
+For knowledge work, that pattern maps almost perfectly onto five variants.
+
+Primary is the user-facing assistant. The one the user talks to directly. Full permissions, full memory.
+
+Research is the gathering variant. Given a question, it does the searching, the reading, the summarizing. Read-only access to all source systems, read-only access to the conversation history.
+
+Draft is the composing variant. Given a goal and source material, it produces deliverables — emails, documents, plans, slides. It has write access only to draft storage, not to send.
+
+Critique is the verification variant. Given a draft, it reads it looking for unsupported claims, tone mismatches, missing citations, factual errors. Read-only. This variant is what substitutes for the compiler in a verification-asymmetric world.
+
+Summarize is the compaction variant. When session memory needs to be condensed, this is the one that does the work. Read-only on the source conversation, write access to the summary record.
+
+Variants share the session and message history. Sub-agents read the same conversation the parent sees. They do not fork the world. This is essential, because forking would defeat the cross-session memory tier entirely.
+
+Reserve Claude Code's separate task-tool pattern — where a fully isolated sub-agent runs in its own context — for cases where you specifically want noise kept out of the parent. A research task about to read fifty web pages should not bloat the main conversation. The task-tool variant returns only the synthesized output, not the raw reading. Use it sparingly. The default should be shared-context variants.
+
+=====
+CHAPTER NINE — DECISION SIX, PERSISTENCE AS ARTIFACTS
+
+The sixth decision is the persistence layer, and this is where you have to invent something the five coding harnesses do not have.
+
+Start with pi's substrate. Sessions live in a per-user directory as line-delimited JavaScript object notation files. Each line is one record. Each record has an identifier and an optional parent identifier. Compaction writes a summary record into the log without deleting the originals. Branching is implicit — you fork a session by writing new records that point to the same parent. The format is human-readable. You can open it with a text editor or a command-line filter and inspect what happened. It is version-control friendly. Two clients can append concurrently because appends to a line-delimited file are atomic. This is the right substrate. Do not reinvent it.
+
+The thing pi does not do, and the thing nobody does, is that messages are not the user-facing unit of knowledge work.
+
+Think about what the user actually cares about at the end of a long agent session. They do not care that turn forty-seven was a tool call to Gmail. They do not care that turn forty-eight was a model response with three citations. They care about the document that was drafted, the decision that was made, the email that went out, the meeting that got scheduled. Those are the artifacts. Those are the things that emerged from the conversation. The messages are how those artifacts came into being, but the artifacts are the unit the user wants to see.
+
+So you maintain a derived view alongside the line-delimited log. An artifacts index. Four categories.
+
+Drafts. Documents or emails in flight. Each draft has a content body, a version number, and a list of which conversation turns produced it. When the draft gets revised, that creates a new version, linked to the prior. The history of revisions is itself a value the user can inspect.
+
+Decisions. Statements of intent that the user ratified at some point in the conversation. The decision body, the conversation it came from, and the specific turn where the user said yes.
+
+Sent actions. Things that left the system — emails, Slack posts, calendar invites. The content that was sent, the recipient, the time of sending, and the permission grant identifier that authorized it. This last piece is the audit trail.
+
+Syntheses. Research outputs. The synthesis content, the list of sources cited, and the retrieval confidence score for each source.
+
+The artifacts view is derived from the message log, not stored independently. When a session is resumed, the artifacts view gets reconstructed. The efficient way to do that reconstruction is to borrow codex's reverse-replay pattern. Codex stores its session history in what it calls a rollout, and when it needs to rebuild state, it scans backward from the end of the log, looking for the most recent compaction checkpoint. Once it finds one, it loads the checkpoint as the base state, then applies any forward events after that point — turns, rollbacks, tool results. The reverse scan finds the optimal starting point automatically, avoiding the cost of replaying the entire history from scratch.
+
+Apply the same pattern to the artifacts view. Scan the log backward, find the most recent point where the artifacts view was checkpointed, load that state, then forward-apply any subsequent events. On a long-lived session — and knowledge-work sessions can be long-lived in a way coding sessions rarely are — this is the difference between a snappy resume and a thirty-second loading screen.
+
+So the persistence story has two parts. The substrate is pi's line-delimited log. The user-facing layer is a derived artifacts index that reverse-replays its way back into existence on resume.
+
+=====
+CHAPTER TEN — THE FOUR GAPS AND THE CLOSING
+
+The six decisions get you a skeleton. The five coding harnesses contribute every primitive needed for that skeleton. But a knowledge-work harness that stops at the skeleton is incomplete in four specific ways, and these four ways are where the real engineering investment goes. They are also where the design opinions actually live.
+
+The first gap is cross-session retrieval memory. I talked about this in the layered memory section, but it deserves to be called out as its own thing because of how completely it is absent from the five reference harnesses. Pi has no retrieval. Codex has no retrieval. Claude Code has no retrieval. Code puppy has no retrieval. Opencode has no retrieval. They all lean on filesystem reads as a memory substitute, which is fine when the repository is ground truth and useless when the substrate is conversational. You need an embedding store, retrieval triggered at turn start, provenance metadata on every fragment, staleness scoring, and a contradiction signal. This is the largest piece of new engineering in the whole design.
+
+The second gap is proactive long-horizon loops. All five coding harnesses are reactive. The user prompts, the agent runs, the agent stops. Even codex's submission loop, which is structurally event-driven, only reacts to inbound messages. Knowledge work often needs the agent to act on its own schedule. Watch this customer's support tickets for the next month and tell me if anything looks like a churn risk. Every Monday at nine in the morning, summarize all pull requests merged last week and post it to the engineering channel. If the Securities and Exchange Commission files anything about a specified competitor, ping me within an hour. None of the five harnesses model this. You need a scheduler, you need webhook triggers, you need polling primitives, you need a way for the agent to update its own goals as state evolves, you need a budget ceiling so a runaway watcher does not spend four hundred dollars of credit overnight, and you need idempotency so the agent does not re-send the same alert on every wake.
+
+The third gap is source provenance tracking, surfaced in the user interface. When a knowledge-work agent claims something — the Q3 deadline is May 15, the customer mentioned pricing concerns last week, the legal team has approved this language — the user needs to know where that claim came from. Coding agents do not need this because the code is self-evidencing. A knowledge agent's claims are synthesized from external sources and have no inherent verifiability. The architectural shape is straightforward in principle. Every retrieved fact carries a source identifier, a source uniform resource locator, a retrieval timestamp, and a confidence score. The model is instructed to emit citations inline. The user interface renders citations as clickable, hoverable, showing the original source snippet on hover. Synthesis steps preserve the lineage — X is true because of source one and source two. This is well-trodden territory in academic large-language-model research and entirely absent as a first-class architectural concern in any of the five coding harnesses.
+
+The fourth gap is the draft-refine cycle as a first-class state. Message turns are the wrong granularity for many knowledge tasks. Draft an email, get the user's approval, revise based on their edits, send. This is not three turns. It is one logical operation in three phases, and the harness should model that explicitly. A draft is a first-class persisted entity, not a message. Drafts have versions. Each version is a delta from the prior. User feedback on a draft — inline edits, comments, ratings — is structured input that the harness routes back to the draft variant for revision. The send action is bound to a specific draft version, and ratifying a different version requires re-confirmation. Opencode's tool state machine, which moves a tool call through pending, running, completed, error, or ignored, is the closest pattern in the studied harnesses, but it operates on tool calls, not on user-facing artifacts. Apply the same idea at the artifact layer and you unlock a fundamentally better iteration experience.
+
+Pull this all together. The shape of a knowledge-work agent harness, in a single sentence: borrow the asynchronous generator loop from Claude Code, layer pi's steering and follow-up split on top, persist with pi's line-delimited substrate and codex's reverse-replay reconstruction, separate permissions by blast radius with codex's granular shape and opencode's once-always-reject tier, integrate tools with code puppy's two-pass registration and codex's per-turn rebuilding, structure cognition with opencode's variant model and Claude Code's task-tool isolation for noise containment — and then build, as net-new engineering, the three-tier memory with semantic retrieval, the proactive scheduling loop with budget guardrails, the provenance lineage that survives synthesis, and the draft-refine cycle as a first-class state.
+
+The skeleton is table stakes. The opinions, and the four gap items, are the product.
+
+Those four are not features. They are the architectural commitments that decide whether the agent you are building is a chat interface or a colleague.
