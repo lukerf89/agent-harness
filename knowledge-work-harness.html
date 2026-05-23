@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy of a Knowledge-Work Agent Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --bg-elev: #131317;
+    --bg-elev-2: #1a1a20;
+    --border: #26262e;
+    --border-soft: #1e1e25;
+    --text: #ededf0;
+    --text-2: #a0a0a8;
+    --text-3: #6a6a72;
+    --pi: #34d399;
+    --codex: #fb923c;
+    --cc: #a78bfa;
+    --puppy: #fb7185;
+    --oc: #22d3ee;
+    --kw: #fbbf24;
+    --gap: #f43f5e;
+    --pi-dim: rgba(52,211,153,.12);
+    --codex-dim: rgba(251,146,60,.12);
+    --cc-dim: rgba(167,139,250,.12);
+    --puppy-dim: rgba(251,113,133,.12);
+    --oc-dim: rgba(34,211,238,.12);
+    --kw-dim: rgba(251,191,36,.12);
+    --gap-dim: rgba(244,63,94,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(251,191,36,0.08), transparent 60%),
+      radial-gradient(1000px 500px at -10% 30%, rgba(244,63,94,0.06), transparent 60%),
+      radial-gradient(900px 400px at 50% 110%, rgba(167,139,250,0.05), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  main, header { position: relative; z-index: 1; }
+  a { color: inherit; }
+  code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  pre { overflow-x: auto; }
+  pre code { background: transparent; padding: 0; font-size: 13px; }
+  .mono { font-size: .9em; }
+
+  .container { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+  @media (max-width: 720px) { .container { padding: 0 20px; } }
+
+  header.site {
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    background: rgba(10,10,12,0.72);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  header.site .bar {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  header.site .brand {
+    font-family: 'Fraunces', serif;
+    font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  header.site .brand em { color: var(--kw); font-style: normal; }
+  header.site nav { display: flex; gap: 24px; font-size: 13px; color: var(--text-2); }
+  header.site nav a { text-decoration: none; transition: color .15s; }
+  header.site nav a:hover { color: var(--text); }
+  @media (max-width: 880px) { header.site nav { display: none; } }
+
+  /* Hero */
+  section.hero {
+    padding: 110px 0 90px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .hero .eyebrow {
+    color: var(--text-3);
+    font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; margin-bottom: 28px;
+  }
+  .hero .eyebrow .pulse {
+    display: inline-block; width: 6px; height: 6px;
+    background: var(--kw); border-radius: 50%;
+    box-shadow: 0 0 12px var(--kw);
+    margin-right: 8px; vertical-align: middle;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(40px, 6vw, 76px);
+    font-weight: 600; line-height: 1.02;
+    letter-spacing: -0.025em; margin-bottom: 26px;
+    max-width: 16ch;
+  }
+  .hero h1 em { font-style: italic; color: var(--text-2); font-weight: 400; }
+  .hero h1 .accent { color: var(--kw); font-style: normal; font-weight: 600; }
+  .hero .lede {
+    max-width: 64ch; font-size: 19px;
+    color: var(--text-2); line-height: 1.6;
+    margin-bottom: 50px;
+  }
+  .hero .lede strong { color: var(--text); font-weight: 500; }
+  .hero .key {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px; background: var(--border-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px; overflow: hidden;
+    margin-top: 8px;
+  }
+  .hero .key div {
+    background: var(--bg-elev); padding: 20px 22px;
+    font-size: 13px; color: var(--text-2);
+  }
+  .hero .key div .kw {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-3);
+    margin-bottom: 8px; display: block;
+  }
+  .hero .key div .v {
+    font-family: 'Fraunces', serif; font-size: 18px;
+    color: var(--text); font-weight: 600;
+    letter-spacing: -0.01em; margin-bottom: 4px;
+  }
+
+  /* Section */
+  section.bay {
+    padding: 110px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .section-eyebrow {
+    color: var(--text-3); font-size: 12px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .section-eyebrow .num {
+    color: var(--text); margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 3.5vw, 44px);
+    font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.1; margin-bottom: 18px;
+    max-width: 22ch;
+  }
+  .section-lede {
+    max-width: 72ch; font-size: 17px;
+    color: var(--text-2); line-height: 1.6;
+    margin-bottom: 50px;
+  }
+  .section-lede strong { color: var(--text); font-weight: 500; }
+
+  /* Axes of difference */
+  .axes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 22px;
+  }
+  .axis {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px; padding: 28px;
+    position: relative; overflow: hidden;
+  }
+  .axis::before {
+    content: ""; position: absolute; inset: 0 0 auto 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--kw), transparent);
+  }
+  .axis .ax-num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--kw); font-size: 11px;
+    letter-spacing: 0.12em; margin-bottom: 14px;
+  }
+  .axis h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px; font-weight: 600;
+    letter-spacing: -0.01em; margin-bottom: 14px;
+  }
+  .axis p {
+    color: var(--text-2); font-size: 14.5px;
+    line-height: 1.6; margin-bottom: 14px;
+  }
+  .axis .vs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0; margin-top: 18px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px; overflow: hidden;
+  }
+  .axis .vs > div { padding: 14px 16px; font-size: 13px; }
+  .axis .vs .code {
+    background: var(--bg-elev-2);
+    color: var(--text-2);
+    border-right: 1px solid var(--border-soft);
+  }
+  .axis .vs .knw {
+    background: var(--kw-dim);
+    color: var(--text);
+  }
+  .axis .vs .h {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3); margin-bottom: 6px;
+    display: block;
+  }
+  .axis .vs .knw .h { color: var(--kw); }
+
+  /* Decision cards */
+  .decisions { display: grid; gap: 22px; }
+  .decision {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px; padding: 32px;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 32px;
+  }
+  @media (max-width: 880px) {
+    .decision { grid-template-columns: 1fr; gap: 16px; }
+  }
+  .decision .dec-side .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em;
+    color: var(--text-3); margin-bottom: 10px;
+  }
+  .decision .dec-side h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px; font-weight: 600;
+    letter-spacing: -0.015em; line-height: 1.12;
+    margin-bottom: 14px;
+  }
+  .decision .dec-side .tagline {
+    color: var(--text-2); font-size: 14px;
+    line-height: 1.55; margin-bottom: 18px;
+  }
+  .decision .dec-side .borrow {
+    border-top: 1px solid var(--border-soft);
+    padding-top: 14px; font-size: 12px;
+    color: var(--text-3);
+  }
+  .decision .dec-side .borrow .b-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-3);
+    margin-bottom: 8px; display: block;
+  }
+  .decision .dec-side .borrow .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 9px; margin: 0 6px 6px 0;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-soft);
+    font-size: 11.5px; color: var(--text-2);
+  }
+  .decision .dec-side .borrow .chip::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+  }
+  .decision .dec-side .borrow .chip.pi::before { background: var(--pi); }
+  .decision .dec-side .borrow .chip.codex::before { background: var(--codex); }
+  .decision .dec-side .borrow .chip.cc::before { background: var(--cc); }
+  .decision .dec-side .borrow .chip.puppy::before { background: var(--puppy); }
+  .decision .dec-side .borrow .chip.oc::before { background: var(--oc); }
+
+  .decision .dec-body p {
+    color: var(--text-2); font-size: 14.5px;
+    line-height: 1.7; margin-bottom: 14px;
+  }
+  .decision .dec-body p strong { color: var(--text); font-weight: 500; }
+  .decision .dec-body pre {
+    background: rgba(0,0,0,0.32);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    padding: 16px 18px; margin: 14px 0;
+    font-size: 12.5px; line-height: 1.55;
+    color: #cdd0d4;
+  }
+  .decision .dec-body .src {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px; color: var(--text-3);
+    margin-top: 4px; padding-top: 8px;
+    border-top: 1px dashed var(--border-soft);
+  }
+  .decision .dec-body .src::before { content: "↳ "; color: var(--text-3); }
+
+  .decision .dec-body table {
+    width: 100%; border-collapse: separate;
+    border-spacing: 0; font-size: 13px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px; overflow: hidden;
+    margin: 12px 0;
+  }
+  .decision .dec-body table th,
+  .decision .dec-body table td {
+    padding: 12px 14px; text-align: left;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: top;
+  }
+  .decision .dec-body table th {
+    background: var(--bg-elev-2);
+    font-weight: 600; font-size: 11px;
+    letter-spacing: 0.04em; color: var(--text-2);
+  }
+  .decision .dec-body table tr:last-child td { border-bottom: none; }
+  .decision .dec-body table td:first-child {
+    color: var(--text); font-weight: 500;
+    border-right: 1px solid var(--border-soft);
+    background: rgba(255,255,255,0.015);
+  }
+  .decision .dec-body table tr.flag td {
+    background: var(--gap-dim);
+  }
+
+  /* Heritage diagram */
+  .heritage-wrap {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 36px 28px;
+    margin-top: 16px;
+  }
+  .heritage {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 920px) {
+    .heritage { grid-template-columns: repeat(2, 1fr); }
+  }
+  .heritage .h-col h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 19px; font-weight: 600;
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .heritage .h-col h4::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+  }
+  .heritage .h-col[data-h="pi"] h4::before { background: var(--pi); box-shadow: 0 0 12px var(--pi); }
+  .heritage .h-col[data-h="codex"] h4::before { background: var(--codex); box-shadow: 0 0 12px var(--codex); }
+  .heritage .h-col[data-h="cc"] h4::before { background: var(--cc); box-shadow: 0 0 12px var(--cc); }
+  .heritage .h-col[data-h="puppy"] h4::before { background: var(--puppy); box-shadow: 0 0 12px var(--puppy); }
+  .heritage .h-col[data-h="oc"] h4::before { background: var(--oc); box-shadow: 0 0 12px var(--oc); }
+  .heritage .h-col .lang {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3); margin-bottom: 14px;
+  }
+  .heritage .h-col ul {
+    list-style: none; padding: 0;
+    border-top: 1px solid var(--border-soft);
+  }
+  .heritage .h-col ul li {
+    padding: 12px 0; font-size: 13px;
+    color: var(--text-2); line-height: 1.45;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .heritage .h-col ul li strong {
+    color: var(--text); font-weight: 500;
+    display: block; margin-bottom: 3px;
+    font-size: 13.5px;
+  }
+  .heritage .h-col ul li .file {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; color: var(--text-3);
+    display: block; margin-top: 6px;
+  }
+
+  /* Gaps section */
+  .gaps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 22px;
+  }
+  .gap {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px; padding: 28px;
+    position: relative;
+  }
+  .gap::before {
+    content: ""; position: absolute; inset: 0 0 auto 0;
+    height: 2px; background: var(--gap);
+    box-shadow: 0 0 12px var(--gap);
+  }
+  .gap .g-num {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.12em;
+    color: var(--gap); margin-bottom: 12px;
+    padding: 3px 8px;
+    background: var(--gap-dim);
+    border-radius: 3px;
+  }
+  .gap h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px; font-weight: 600;
+    line-height: 1.18; letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  .gap p {
+    color: var(--text-2); font-size: 14px;
+    line-height: 1.6; margin-bottom: 12px;
+  }
+  .gap p strong { color: var(--text); font-weight: 500; }
+  .gap .nope {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--gap);
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px dashed var(--border-soft);
+  }
+  .gap ul {
+    list-style: none; padding: 0; margin: 8px 0 12px;
+  }
+  .gap ul li {
+    padding: 4px 0 4px 16px;
+    color: var(--text-2); font-size: 13px;
+    position: relative; line-height: 1.5;
+  }
+  .gap ul li::before {
+    content: "·"; position: absolute; left: 4px;
+    color: var(--gap); font-weight: 700;
+  }
+
+  /* Architecture sketch */
+  .arch {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px; padding: 36px 28px;
+  }
+  .arch svg { width: 100%; height: auto; display: block; }
+  .arch-legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 28px; padding-top: 24px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 12px;
+  }
+  .arch-legend .lk {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: var(--text-2);
+  }
+  .arch-legend .lk::before {
+    content: ""; width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+  .arch-legend .lk.pi::before { background: var(--pi); }
+  .arch-legend .lk.codex::before { background: var(--codex); }
+  .arch-legend .lk.cc::before { background: var(--cc); }
+  .arch-legend .lk.puppy::before { background: var(--puppy); }
+  .arch-legend .lk.oc::before { background: var(--oc); }
+  .arch-legend .lk.new::before { background: var(--gap); box-shadow: 0 0 8px var(--gap); }
+
+  /* Permission spectrum */
+  .perm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px;
+    background: var(--border-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 24px;
+  }
+  .perm-cell {
+    background: var(--bg-elev);
+    padding: 22px 20px;
+    position: relative;
+  }
+  .perm-cell .blast {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .perm-cell.r0 .blast { color: var(--pi); }
+  .perm-cell.r1 .blast { color: var(--oc); }
+  .perm-cell.r2 .blast { color: var(--kw); }
+  .perm-cell.r3 .blast { color: var(--gap); }
+  .perm-cell .blast .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .perm-cell h4 {
+    font-family: 'Fraunces', serif; font-size: 17px;
+    font-weight: 600; margin-bottom: 10px;
+  }
+  .perm-cell p {
+    color: var(--text-2); font-size: 13px;
+    line-height: 1.5; margin-bottom: 8px;
+  }
+  .perm-cell .ux {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text-3);
+    padding-top: 10px; margin-top: 10px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  /* Footnote */
+  .closing {
+    background: linear-gradient(180deg, var(--bg-elev), var(--bg));
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 48px 40px;
+    margin-top: 32px;
+  }
+  .closing h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 32px; font-weight: 600;
+    letter-spacing: -0.02em; margin-bottom: 18px;
+    max-width: 22ch;
+  }
+  .closing p {
+    font-size: 16px; line-height: 1.7;
+    color: var(--text-2); max-width: 72ch;
+    margin-bottom: 14px;
+  }
+  .closing p strong { color: var(--text); font-weight: 500; }
+  .closing p em { color: var(--kw); font-style: normal; font-weight: 500; }
+
+  footer.site {
+    padding: 50px 0 70px;
+    color: var(--text-3); font-size: 13px;
+  }
+  footer.site a { color: var(--text-2); text-decoration: none; }
+  footer.site a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand">Knowledge-Work <em>Harness</em></div>
+    <nav>
+      <a href="#axes">Difference</a>
+      <a href="#decisions">Decisions</a>
+      <a href="#heritage">Heritage</a>
+      <a href="#gaps">Gaps</a>
+      <a href="#arch">Architecture</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow"><span class="pulse"></span>Design report — 2026 · grounded in five coding harnesses</div>
+    <h1>What a <span class="accent">knowledge-work</span> harness needs that a coding one doesn&rsquo;t.</h1>
+    <p class="lede">
+      Coding harnesses — <strong>pi</strong>, <strong>Claude Code</strong>, <strong>codex</strong>,
+      <strong>code_puppy</strong>, <strong>opencode</strong> — are the closest thing the field has to
+      reference architectures for agents. They give us a vocabulary, not a blueprint. Knowledge work shifts
+      the architectural pressures in <strong>three specific ways</strong>, and naively porting one of these
+      harnesses to research, drafting, scheduling, or triage quietly degrades safety, observability, and
+      recall. This report names the differences, proposes <strong>six decisions</strong>, and identifies
+      four problems no coding harness has had to solve.
+    </p>
+
+    <div class="key">
+      <div>
+        <span class="kw">Borrow loop from</span>
+        <div class="v">Claude Code</div>
+        AsyncGenerator queryLoop with yield boundaries
+      </div>
+      <div>
+        <span class="kw">Borrow persistence from</span>
+        <div class="v">pi</div>
+        JSONL with parentId branching
+      </div>
+      <div>
+        <span class="kw">Borrow permissions from</span>
+        <div class="v">codex + opencode</div>
+        GranularApprovalConfig + once/always/reject
+      </div>
+      <div>
+        <span class="kw">Borrow tools from</span>
+        <div class="v">code_puppy</div>
+        Two-pass MCP registration
+      </div>
+      <div>
+        <span class="kw">Borrow variants from</span>
+        <div class="v">opencode</div>
+        plan / explore / compaction
+      </div>
+      <div>
+        <span class="kw">Build that nobody has</span>
+        <div class="v">Memory · Proactivity · Citations · Drafts</div>
+        The architectural commitments
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AXES OF DIFFERENCE -->
+<section class="bay" id="axes">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Three axes of difference</div>
+    <h2 class="section-title">Knowledge work changes what the harness has to model.</h2>
+    <p class="section-lede">
+      Coding agents are anchored to a compiler, write to a recoverable filesystem, and treat the repo as
+      ground truth. Knowledge work has <strong>none of those affordances</strong> — and the harness has to
+      compensate for each one architecturally.
+    </p>
+
+    <div class="axes">
+      <div class="axis">
+        <div class="ax-num">AXIS · 1</div>
+        <h3>Verification asymmetry</h3>
+        <p>
+          The coding loop is anchored to <strong>fast, brutal ground truth</strong> — tsc, pytest, lint, the
+          next tool call. Claude Code&rsquo;s <code>queryLoop</code> can emit edits with confidence because
+          the environment will answer back in seconds.
+        </p>
+        <p>
+          Knowledge work has <strong>no equivalent</strong>. There is no test runner for "draft a board update."
+          The "did it work" signal has to be modeled into the loop itself — critique sub-agents, draft/refine
+          cycles, human checkpoints. Tool results are not self-validating.
+        </p>
+        <div class="vs">
+          <div class="code">
+            <span class="h">Coding</span>
+            tsc · pytest · lint<br>next tool call disambiguates
+          </div>
+          <div class="knw">
+            <span class="h">Knowledge work</span>
+            critique variant · user checkpoints · draft cycles
+          </div>
+        </div>
+      </div>
+
+      <div class="axis">
+        <div class="ax-num">AXIS · 2</div>
+        <h3>Blast radius asymmetry</h3>
+        <p>
+          Coding harnesses assume the worst case is "modify a file on disk." <code>git reset</code> recovers
+          most damage. Permission models like Codex&rsquo;s <code>AskForApproval</code> are tuned for
+          friction-minimization on a population of mostly-recoverable actions.
+        </p>
+        <p>
+          Knowledge work has a different action distribution. A small minority of tool calls — send_email,
+          create_event, share_doc, post_slack — are <strong>not undoable</strong>. The permission model has
+          to recognize this asymmetry, not treat all writes as equivalent.
+        </p>
+        <div class="vs">
+          <div class="code">
+            <span class="h">Coding</span>
+            rm -rf → annoying<br>git push -f → recoverable
+          </div>
+          <div class="knw">
+            <span class="h">Knowledge work</span>
+            wrong-recipient email → permanent<br>triple-booked CEO → expensive
+          </div>
+        </div>
+      </div>
+
+      <div class="axis">
+        <div class="ax-num">AXIS · 3</div>
+        <h3>Source-of-truth asymmetry</h3>
+        <p>
+          A coding agent has the filesystem and git history. These are <strong>complete</strong> — anything
+          not in them definitionally isn&rsquo;t the project. Claude Code injects <code>git status</code>
+          confidently because git is authoritative.
+        </p>
+        <p>
+          Knowledge-work context is scattered, lossy, conversational. Facts live in Slack threads, draft
+          Notion docs, unread emails, prior conversations. <strong>The conversation itself is often the
+          artifact</strong>, not a scratch surface over an authoritative substrate. Memory strategy has to
+          do real architectural work.
+        </p>
+        <div class="vs">
+          <div class="code">
+            <span class="h">Coding</span>
+            filesystem + git = ground truth<br>memory = scratchpad
+          </div>
+          <div class="knw">
+            <span class="h">Knowledge work</span>
+            no ground truth<br>conversation = artifact
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISIONS -->
+<section class="bay" id="decisions">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Six architectural decisions</div>
+    <h2 class="section-title">From the differences, six load-bearing choices.</h2>
+    <p class="section-lede">
+      Each decision below cites which of the five harnesses it borrows from, with the specific file path or
+      pattern. Three of them are <em>reshape</em> moves; three are <em>direct lifts</em>; one — context
+      strategy — is where the inheritance breaks down hardest.
+    </p>
+
+    <div class="decisions">
+
+      <!-- D1 LOOP SHAPE -->
+      <div class="decision">
+        <div class="dec-side">
+          <div class="num">DECISION · 01</div>
+          <h3>Loop shape: event-driven, async-generator, steerable</h3>
+          <div class="tagline">
+            Borrow Claude Code&rsquo;s yield-everything queryLoop and layer pi&rsquo;s steering/follow-up split on top.
+          </div>
+          <div class="borrow">
+            <span class="b-label">Borrowed from</span>
+            <span class="chip cc">Claude Code</span>
+            <span class="chip pi">pi</span>
+          </div>
+        </div>
+        <div class="dec-body">
+          <p>
+            Coding feels fast because tool calls return in milliseconds. <strong>Knowledge work is opaque</strong>
+            — a 30-minute deep-research turn gives the user nothing to look at. The yield boundary in
+            Claude Code&rsquo;s <code>queryLoop</code> is the only place to surface machinery: sub-agent progress,
+            compaction events, citation grounding. Showing the work matters <em>more</em> when verification is slow.
+          </p>
+          <p>
+            Pi&rsquo;s distinction between <strong>steering messages</strong> (interrupt mid-turn) and
+            <strong>follow-up messages</strong> (continue after turn) becomes load-bearing. Hours-long research
+            threads cannot be restarted because the user said "also check the 2023 numbers."
+          </p>
+<pre><code>async function* knowledgeLoop(state) {
+  while (state.followUps.length || !state.terminated) {       // pi outer
+    while (state.steering.length || !state.turnEnded) {       // pi inner
+      yield* runTurn(state);                                  // Claude Code yields
+      if (state.tokensExceeded) yield* compact(state);        // observable compaction
+      if (state.steering.length) state = applySteering(state);
+    }
+    state = await consumeFollowUp(state);
+  }
+  return state.result;
+}</code></pre>
+          <div class="src">src/query.ts queryLoop (Claude Code) · packages/agent/src/agent-loop.ts:170 (pi)</div>
+        </div>
+      </div>
+
+      <!-- D2 CONTEXT -->
+      <div class="decision">
+        <div class="dec-side">
+          <div class="num">DECISION · 02</div>
+          <h3>Context strategy: layered memory, not just compaction</h3>
+          <div class="tagline">
+            This is where coding-harness inheritance breaks down hardest. None of the five do this well.
+          </div>
+          <div class="borrow">
+            <span class="b-label">Borrowed from</span>
+            <span class="chip cc">Claude Code</span>
+            <span class="chip pi">pi</span>
+            <br><span class="b-label" style="margin-top:10px">Net-new</span>
+            Persistent semantic memory tier
+          </div>
+        </div>
+        <div class="dec-body">
+          <p>
+            All five harnesses treat memory the same way — a sliding window, compacted when full, plus a static
+            <code>CLAUDE.md</code>/<code>AGENTS.md</code> file. This works for coding because <strong>the repo
+            is ground truth</strong>; the agent can always re-read a file. Conversation is a scratchpad over
+            an authoritative substrate.
+          </p>
+          <p>
+            Knowledge work has no such substrate. The conversation <em>is</em> the substrate. Compaction is
+            <strong>lossy compression of the only copy</strong>. So:
+          </p>
+          <table>
+            <thead>
+              <tr><th>Tier</th><th>Purpose</th><th>Inspiration</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Working context</td>
+                <td>Current turn, full fidelity</td>
+                <td>Claude Code autocompact/microcompact/snip</td>
+              </tr>
+              <tr>
+                <td>Session memory</td>
+                <td>Append-only log, branchable</td>
+                <td>pi JSONL with parentId fork</td>
+              </tr>
+              <tr class="flag">
+                <td>Persistent memory</td>
+                <td>Cross-session semantic retrieval, provenance metadata</td>
+                <td>Not present in any of the five</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            The third tier is the gap. None of the five harnesses do retrieval well — they lean on
+            <code>grep</code> and <code>read</code>, which is adequate for code. Knowledge work demands an
+            embedding store, retrieval at turn start, and <strong>provenance metadata on every fragment</strong>
+            so the agent can cite where a recalled fact came from.
+          </p>
+          <div class="src">src/query.ts compaction cascade (Claude Code) · ~/.pi/agent/sessions/{id}.jsonl (pi)</div>
+        </div>
+      </div>
+
+      <!-- D3 PERMISSIONS -->
+      <div class="decision">
+        <div class="dec-side">
+          <div class="num">DECISION · 03</div>
+          <h3>Permissions: granular and irreversibility-aware</h3>
+          <div class="tagline">
+            Borrow Codex&rsquo;s two-axis shape; reframe axes for blast radius; layer opencode&rsquo;s three-tier UX.
+          </div>
+          <div class="borrow">
+            <span class="b-label">Borrowed from</span>
+            <span class="chip codex">codex</span>
+            <span class="chip oc">opencode</span>
+            <span class="chip cc">Claude Code</span>
+          </div>
+        </div>
+        <div class="dec-body">
+          <p>
+            Codex&rsquo;s <code>GranularApprovalConfig</code> in <code>exec_policy.rs</code> is the right
+            <em>shape</em> — separating rules approval from sandbox approval — but the axes are coding-flavored.
+            For knowledge work, the axes are <strong>blast radius</strong> and <strong>reversibility</strong>:
+          </p>
+
+          <div class="perm-grid">
+            <div class="perm-cell r0">
+              <div class="blast"><span class="dot"></span>R0 · Read</div>
+              <h4>Search · Fetch · Query</h4>
+              <p>search_inbox, get_doc, query_crm</p>
+              <div class="ux">Auto-allow · silent</div>
+            </div>
+            <div class="perm-cell r1">
+              <div class="blast"><span class="dot"></span>R1 · Draft</div>
+              <h4>Local write</h4>
+              <p>create_draft, save_scratch_note</p>
+              <div class="ux">Auto-accept · toast</div>
+            </div>
+            <div class="perm-cell r2">
+              <div class="blast"><span class="dot"></span>R2 · Send</div>
+              <h4>External, irreversible</h4>
+              <p>send_email, post_slack, share_doc, create_event</p>
+              <div class="ux">Always ask · preview required</div>
+            </div>
+            <div class="perm-cell r3">
+              <div class="blast"><span class="dot"></span>R3 · Destroy</div>
+              <h4>Destructive</h4>
+              <p>delete_record, cancel_event, archive_thread</p>
+              <div class="ux">Always ask · diff + rollback path</div>
+            </div>
+          </div>
+
+          <p style="margin-top:18px">
+            The critical move is that <strong>preview becomes part of the permission UX</strong>, not an
+            afterthought. Claude Code&rsquo;s <code>"plan"</code> mode in <code>src/Tool.ts</code> already
+            prefigures this — for knowledge work, plan mode becomes the default for any external-send action.
+            Opencode&rsquo;s <code>once / always / reject</code> tier handles the repetition problem: a user
+            approving "send email to Bob" should not re-approve forty times in the same session.
+          </p>
+          <div class="src">exec_policy.rs GranularApprovalConfig (codex) · packages/opencode/src/acp/agent.ts (opencode) · src/Tool.ts (Claude Code)</div>
+        </div>
+      </div>
+
+      <!-- D4 TOOLS -->
+      <div class="decision">
+        <div class="dec-side">
+          <div class="num">DECISION · 04</div>
+          <h3>Tool surface: MCP-first, two-pass registration</h3>
+          <div class="tagline">
+            Borrow code_puppy&rsquo;s probe-then-filter; layer codex&rsquo;s per-turn re-registration.
+          </div>
+          <div class="borrow">
+            <span class="b-label">Borrowed from</span>
+            <span class="chip puppy">code_puppy</span>
+            <span class="chip codex">codex</span>
+          </div>
+        </div>
+        <div class="dec-body">
+          <p>
+            Knowledge-work tools live almost entirely in SaaS — Gmail, Notion, Linear, Drive, Calendar, Slack,
+            Airtable. MCP has already become the lingua franca. Two patterns from the harnesses transfer cleanly:
+          </p>
+          <p>
+            <strong>code_puppy&rsquo;s two-pass registration</strong> probes for native tool names with an empty
+            toolset first, then loads MCP servers and filters conflicting names before rebuilding. Without this,
+            two MCP servers each exposing a <code>search</code> tool silently shadow each other — the agent
+            uses the wrong one with no obvious failure.
+          </p>
+<pre><code># Pass 1: probe
+dummy = PydanticAgent(model, toolsets=[])
+existing = {t.name for t in dummy._tools}
+
+# Pass 2: filter and rebuild
+mcp_servers = filter_conflicting_mcp_tools(load_mcp_servers(), existing)
+agent = PydanticAgent(model, toolsets=[*native, *mcp_servers])</code></pre>
+          <p>
+            <strong>codex&rsquo;s per-turn registration</strong> rebuilds the ToolRouter every turn from MCP
+            inventory + plugins + connectors. A user may connect Gmail mid-session, OAuth scopes may expire, a
+            workspace may be added — the tool set is not stable, and re-registering each turn absorbs that
+            volatility cleanly (cached for the duration of a turn).
+          </p>
+          <div class="src">code_puppy/agents/_builder.py two-pass registration · codex turn.rs built_tools() per-turn</div>
+        </div>
+      </div>
+
+      <!-- D5 SUB-AGENTS -->
+      <div class="decision">
+        <div class="dec-side">
+          <div class="num">DECISION · 05</div>
+          <h3>Sub-agents: variants over forks</h3>
+          <div class="tagline">
+            Borrow opencode&rsquo;s variant model; reserve Claude Code Task-tool isolation for parallel research.
+          </div>
+          <div class="borrow">
+            <span class="b-label">Borrowed from</span>
+            <span class="chip oc">opencode</span>
+            <span class="chip cc">Claude Code</span>
+          </div>
+        </div>
+        <div class="dec-body">
+          <p>
+            Opencode&rsquo;s <code>AgentVariants</code> table (<code>build</code>, <code>plan</code>,
+            <code>explore</code>, <code>compaction</code>) maps almost perfectly onto knowledge work. The
+            corresponding variants:
+          </p>
+<pre><code>export const KnowledgeVariants = {
+  primary:   { name: 'primary',   role: 'user-facing assistant' },
+  research:  { name: 'research',  role: 'gather and summarize source material' },
+  draft:     { name: 'draft',     role: 'compose deliverables (emails, docs, plans)' },
+  critique:  { name: 'critique',  role: 'review drafts for accuracy, tone, citations' },
+  summarize: { name: 'summarize', role: 'compress conversation for memory' },
+}</code></pre>
+          <p>
+            Variants share the session and message history (read-only for sub-agents) but get distinct system
+            prompts and permission rules. The <code>critique</code> variant gets read-only access and a prompt
+            that hunts for unsupported claims, tone mismatches, missing citations — substituting for the
+            compiler in the verification asymmetry.
+          </p>
+          <p>
+            <strong>Reserve Claude Code&rsquo;s Task-tool pattern</strong> for when you specifically want noise
+            kept out of the parent context — a research task about to read fifty web pages shouldn&rsquo;t bloat
+            the main conversation. The Task tool returns only the synthesis.
+          </p>
+          <div class="src">packages/opencode/src/agent/agent.ts AgentVariants · src/query.ts AgentTool (Claude Code)</div>
+        </div>
+      </div>
+
+      <!-- D6 PERSISTENCE -->
+      <div class="decision">
+        <div class="dec-side">
+          <div class="num">DECISION · 06</div>
+          <h3>Persistence: append-only JSONL + derived artifacts</h3>
+          <div class="tagline">
+            Borrow pi&rsquo;s substrate; add a layer nobody has — the user-facing unit is artifacts, not turns.
+          </div>
+          <div class="borrow">
+            <span class="b-label">Borrowed from</span>
+            <span class="chip pi">pi</span>
+            <span class="chip codex">codex</span>
+            <br><span class="b-label" style="margin-top:10px">Net-new</span>
+            Derived artifacts index over messages
+          </div>
+        </div>
+        <div class="dec-body">
+          <p>
+            Pi&rsquo;s session format — JSONL at <code>~/.pi/agent/sessions/{id}.jsonl</code> with optional
+            <code>parentId</code> for branching — is the right substrate. Human-readable, append-only,
+            version-control-friendly, trivially forkable.
+          </p>
+          <p>
+            But messages are not the user-facing unit of knowledge work. The user does not care about turn 47
+            of conversation X. They care about <strong>the document that was drafted, the decision made, the
+            email sent, the meeting scheduled</strong>. Maintain a derived artifacts view alongside the JSONL:
+          </p>
+          <table>
+            <thead>
+              <tr><th>Artifact</th><th>Content</th><th>Provenance</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Draft</td><td>Document / email body</td><td>Turns producing it · sources cited</td></tr>
+              <tr><td>Decision</td><td>Statement of intent</td><td>Conversation · ratifying turn N</td></tr>
+              <tr><td>Sent action</td><td>Email · post · event</td><td>Permission grant ID · sent-from turn</td></tr>
+              <tr><td>Synthesis</td><td>Research output</td><td>Source list with retrieval scores</td></tr>
+            </tbody>
+          </table>
+          <p>
+            Codex&rsquo;s <strong>reverse-replay reconstruction</strong> pattern in <code>rollout</code> —
+            scan backward to the most recent compaction checkpoint, then apply selective forward events — is
+            the efficient way to rebuild the artifacts view on session resume.
+          </p>
+          <div class="src">packages/agent/src/agent-loop.ts JSONL persistence (pi) · reconstruct_history_from_rollout (codex)</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HERITAGE -->
+<section class="bay" id="heritage">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Cross-harness heritage</div>
+    <h2 class="section-title">What we take from each — and the file paths to find it in.</h2>
+    <p class="section-lede">
+      Five harnesses, five distinct primitives worth keeping. Treat the matrix below as a parts list, not a
+      hierarchy — none of them is the answer alone.
+    </p>
+
+    <div class="heritage-wrap">
+      <div class="heritage">
+        <div class="h-col" data-h="pi">
+          <h4>pi</h4>
+          <div class="lang">TypeScript · ~5K LOC</div>
+          <ul>
+            <li>
+              <strong>JSONL persistence</strong>
+              parentId branching, fork-friendly, debuggable with jq
+              <span class="file">~/.pi/agent/sessions/{id}.jsonl</span>
+            </li>
+            <li>
+              <strong>Hook-based extension</strong>
+              beforeToolCall / afterToolCall as the only extension surface
+              <span class="file">packages/agent/src/agent-loop.ts</span>
+            </li>
+            <li>
+              <strong>Steering vs follow-up</strong>
+              Mid-turn interrupt vs post-turn continuation
+              <span class="file">agent-loop.ts:170 nested while</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="h-col" data-h="cc">
+          <h4>Claude Code</h4>
+          <div class="lang">TypeScript · async generator</div>
+          <ul>
+            <li>
+              <strong>AsyncGenerator loop</strong>
+              Yield boundaries on every state change
+              <span class="file">src/query.ts queryLoop</span>
+            </li>
+            <li>
+              <strong>Multi-tier compaction</strong>
+              auto / micro / snip with visible progress events
+              <span class="file">src/query.ts compaction cascade</span>
+            </li>
+            <li>
+              <strong>Plan mode</strong>
+              Execute dry-run before committing — becomes our preview-before-send
+              <span class="file">src/Tool.ts ToolPermissionMode</span>
+            </li>
+            <li>
+              <strong>Hybrid concurrency</strong>
+              isConcurrencySafe partitions read-only batches
+              <span class="file">toolOrchestration.ts partitionToolCalls</span>
+            </li>
+            <li>
+              <strong>Task tool</strong>
+              Isolated sub-agent for keeping noise out of parent context
+              <span class="file">src/query.ts AgentTool</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="h-col" data-h="codex">
+          <h4>codex</h4>
+          <div class="lang">Rust + thin TS shell</div>
+          <ul>
+            <li>
+              <strong>GranularApprovalConfig</strong>
+              Two-axis approval (rules + sandbox); we reframe for blast radius
+              <span class="file">exec_policy.rs</span>
+            </li>
+            <li>
+              <strong>Per-turn tool registration</strong>
+              Rebuild ToolRouter every turn; absorbs MCP volatility
+              <span class="file">turn.rs built_tools()</span>
+            </li>
+            <li>
+              <strong>Reverse-replay reconstruction</strong>
+              Scan backward to last compaction checkpoint, then forward
+              <span class="file">reconstruct_history_from_rollout</span>
+            </li>
+            <li>
+              <strong>Explicit TurnContext</strong>
+              No thread-locals; dependencies visible
+              <span class="file">turn_context.rs 50+ fields</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="h-col" data-h="puppy">
+          <h4>code_puppy</h4>
+          <div class="lang">Python · Pydantic-AI</div>
+          <ul>
+            <li>
+              <strong>Two-pass MCP registration</strong>
+              Probe native names; filter colliding MCP tools
+              <span class="file">code_puppy/agents/_builder.py</span>
+            </li>
+            <li>
+              <strong>Streaming retry</strong>
+              Transient-error detection on rate_limit / overloaded / ReadTimeout
+              <span class="file">_streaming_retry decorator</span>
+            </li>
+            <li>
+              <strong>Orphan pruning</strong>
+              Remove incomplete tool-call pairs before each run
+              <span class="file">_history.py prune_interrupted_tool_calls</span>
+            </li>
+            <li>
+              <strong>50+ named hook points</strong>
+              file_permission, run_shell_command, pre_tool_call, etc.
+              <span class="file">code_puppy/callbacks.py</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="h-col" data-h="oc">
+          <h4>opencode</h4>
+          <div class="lang">TS / Bun + Go TUI</div>
+          <ul>
+            <li>
+              <strong>Agent variants</strong>
+              Per-variant prompts + permission rules
+              <span class="file">packages/opencode/src/agent/agent.ts</span>
+            </li>
+            <li>
+              <strong>once / always / reject</strong>
+              Three-tier permission UX
+              <span class="file">packages/opencode/src/acp/agent.ts</span>
+            </li>
+            <li>
+              <strong>Client-server split</strong>
+              ACP enables cross-device session resume
+              <span class="file">acp/agent.ts subscription</span>
+            </li>
+            <li>
+              <strong>Tool state machine</strong>
+              pending → running → completed/error/ignored
+              <span class="file">acp/types.ts ToolCall</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAPS -->
+<section class="bay" id="gaps">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">04</span>Where the inheritance ends</div>
+    <h2 class="section-title">Four problems none of the five solve.</h2>
+    <p class="section-lede">
+      A knowledge-work harness that stops at "merge the five coding harnesses&rsquo; best ideas" is incomplete.
+      These four gaps are not solved in any of the studied codebases because coding-agent authors haven&rsquo;t
+      had to face them. <strong>This is where the real engineering investment goes.</strong>
+    </p>
+
+    <div class="gaps">
+      <div class="gap">
+        <div class="g-num">GAP · 01</div>
+        <h3>Retrieval-augmented memory across sessions</h3>
+        <p>
+          The five harnesses lean on filesystem reads (grep, find, Read) as a memory substitute — fine when
+          the repo is ground truth, useless when the substrate is conversational.
+        </p>
+        <ul>
+          <li>Embedding store over every artifact, decision, draft, turn-level snippet</li>
+          <li>Retrieval triggered automatically at turn start, conditioned on the question</li>
+          <li>Provenance metadata: session_id · source · timestamp · author · contradicted-by</li>
+          <li>Staleness signals — a six-month-old "deadline" memory cannot be trusted blindly</li>
+        </ul>
+        <div class="nope">→ Closest analog: CLAUDE.md (static and global, no retrieval)</div>
+      </div>
+
+      <div class="gap">
+        <div class="g-num">GAP · 02</div>
+        <h3>Proactive, long-horizon loops</h3>
+        <p>
+          All five harnesses are <strong>reactive</strong> — user prompts, agent runs, agent stops. Knowledge
+          work often needs proactive behavior:
+        </p>
+        <ul>
+          <li>"Watch this customer&rsquo;s tickets for a month and flag churn risk"</li>
+          <li>"Every Monday at 9am, summarize PRs merged last week to the eng channel"</li>
+          <li>"If the SEC files anything about &lt;competitor&gt;, ping me within an hour"</li>
+        </ul>
+        <p>
+          Requires scheduler primitives, self-updating goals, budget ceilings, idempotency so a watcher
+          doesn&rsquo;t re-send the same alert each wake.
+        </p>
+        <div class="nope">→ Closest analog: codex submission_loop (right shape, no scheduling primitive)</div>
+      </div>
+
+      <div class="gap">
+        <div class="g-num">GAP · 03</div>
+        <h3>Source provenance, surfaced in the UI</h3>
+        <p>
+          When a knowledge agent claims "the Q3 deadline is May 15," the user needs to know <strong>where that
+          came from</strong>. Coding agents don&rsquo;t need this because the code is self-evidencing; a
+          knowledge agent&rsquo;s claims are synthesized and have no inherent verifiability.
+        </p>
+        <ul>
+          <li>Every retrieved fact carries (source_id, url, retrieved_at, confidence)</li>
+          <li>LLM emits inline citations like <code>[src:gmail-thread-abc]</code></li>
+          <li>UI renders citations as clickable, hoverable, showing source snippet</li>
+          <li>Synthesis preserves lineage: "X is true because S₁ and S₂"</li>
+        </ul>
+        <div class="nope">→ Closest analog: none. Well-trodden in academic LLM literature, absent from harness architecture.</div>
+      </div>
+
+      <div class="gap">
+        <div class="g-num">GAP · 04</div>
+        <h3>Draft / refine cycle as a first-class state</h3>
+        <p>
+          Message turns are the wrong granularity. "Draft an email, get my approval, revise based on edits,
+          send" is not three turns — it is <strong>one logical operation in three phases</strong>, and the
+          harness should model that explicitly.
+        </p>
+        <ul>
+          <li>A Draft is a first-class persisted entity, separate from messages</li>
+          <li>Drafts have versions; each version is a delta from the prior</li>
+          <li>User feedback (inline edits, comments, ratings) is structured input routed back to the draft variant</li>
+          <li>"Send" is bound to a specific draft version — ratifying a different version re-confirms</li>
+        </ul>
+        <div class="nope">→ Closest analog: opencode tool state machine (operates on tool calls, not artifacts)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section class="bay" id="arch">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">05</span>Putting it together</div>
+    <h2 class="section-title">A minimum-viable knowledge-work harness.</h2>
+    <p class="section-lede">
+      The architectural sketch: each layer borrows its primitive from the harness color-coded next to it.
+      The amber blocks are the four gaps — the parts no coding harness ships.
+    </p>
+
+    <div class="arch">
+      <svg viewBox="0 0 1000 740" xmlns="http://www.w3.org/2000/svg" style="background:transparent;">
+        <defs>
+          <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#131317"/>
+            <stop offset="100%" stop-color="#0a0a0c"/>
+          </linearGradient>
+          <pattern id="dotgrid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="0.6" fill="#26262e"/>
+          </pattern>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#6a6a72"/>
+          </marker>
+        </defs>
+
+        <rect x="0" y="0" width="1000" height="740" fill="url(#dotgrid)" opacity="0.5"/>
+
+        <!-- USER INPUT TOP -->
+        <g transform="translate(420 18)">
+          <rect width="160" height="40" rx="20" fill="#1a1a20" stroke="#26262e" stroke-width="1"/>
+          <text x="80" y="25" text-anchor="middle" fill="#ededf0" font-family="Inter" font-size="13" font-weight="500">User prompt · steer</text>
+        </g>
+        <line x1="500" y1="58" x2="500" y2="88" stroke="#6a6a72" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+        <!-- LOOP -->
+        <g transform="translate(40 90)">
+          <rect width="920" height="100" rx="10" fill="#131317" stroke="#a78bfa" stroke-width="1" opacity="0.95"/>
+          <rect width="920" height="3" fill="#a78bfa" rx="0"/>
+          <text x="22" y="28" fill="#a78bfa" font-family="JetBrains Mono" font-size="10" letter-spacing="2">01 · LOOP</text>
+          <text x="22" y="56" fill="#ededf0" font-family="Fraunces" font-size="20" font-weight="600">AsyncGenerator queryLoop</text>
+          <text x="22" y="80" fill="#a0a0a8" font-family="Inter" font-size="13">Yield boundaries · compaction · steering · follow-ups · mid-turn interrupt</text>
+          <text x="900" y="28" text-anchor="end" fill="#6a6a72" font-family="JetBrains Mono" font-size="10">Claude Code · pi</text>
+        </g>
+        <line x1="500" y1="190" x2="500" y2="218" stroke="#6a6a72" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+        <!-- VARIANTS -->
+        <g transform="translate(40 220)">
+          <rect width="920" height="84" rx="10" fill="#131317" stroke="#22d3ee" stroke-width="1" opacity="0.95"/>
+          <rect width="920" height="3" fill="#22d3ee"/>
+          <text x="22" y="28" fill="#22d3ee" font-family="JetBrains Mono" font-size="10" letter-spacing="2">02 · VARIANTS</text>
+          <text x="22" y="56" fill="#ededf0" font-family="Fraunces" font-size="18" font-weight="600">Variants over forks</text>
+
+          <g transform="translate(420 36)">
+            <rect width="78" height="32" rx="4" fill="#1a1a20" stroke="#26262e"/>
+            <text x="39" y="21" text-anchor="middle" fill="#ededf0" font-family="JetBrains Mono" font-size="11">primary</text>
+          </g>
+          <g transform="translate(506 36)">
+            <rect width="78" height="32" rx="4" fill="#1a1a20" stroke="#26262e"/>
+            <text x="39" y="21" text-anchor="middle" fill="#ededf0" font-family="JetBrains Mono" font-size="11">research</text>
+          </g>
+          <g transform="translate(592 36)">
+            <rect width="78" height="32" rx="4" fill="#1a1a20" stroke="#26262e"/>
+            <text x="39" y="21" text-anchor="middle" fill="#ededf0" font-family="JetBrains Mono" font-size="11">draft</text>
+          </g>
+          <g transform="translate(678 36)">
+            <rect width="78" height="32" rx="4" fill="#1a1a20" stroke="#26262e"/>
+            <text x="39" y="21" text-anchor="middle" fill="#ededf0" font-family="JetBrains Mono" font-size="11">critique</text>
+          </g>
+          <g transform="translate(764 36)">
+            <rect width="78" height="32" rx="4" fill="#1a1a20" stroke="#26262e"/>
+            <text x="39" y="21" text-anchor="middle" fill="#ededf0" font-family="JetBrains Mono" font-size="11">summarize</text>
+          </g>
+          <text x="900" y="80" text-anchor="end" fill="#6a6a72" font-family="JetBrains Mono" font-size="10">opencode</text>
+        </g>
+        <line x1="500" y1="304" x2="500" y2="332" stroke="#6a6a72" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+        <!-- TOOLS + PERMISSIONS row -->
+        <g transform="translate(40 334)">
+          <rect width="450" height="120" rx="10" fill="#131317" stroke="#fb7185" stroke-width="1" opacity="0.95"/>
+          <rect width="450" height="3" fill="#fb7185"/>
+          <text x="22" y="28" fill="#fb7185" font-family="JetBrains Mono" font-size="10" letter-spacing="2">03 · TOOLS</text>
+          <text x="22" y="54" fill="#ededf0" font-family="Fraunces" font-size="17" font-weight="600">MCP-first, two-pass + per-turn</text>
+          <text x="22" y="78" fill="#a0a0a8" font-family="Inter" font-size="12">probe → filter collisions → register fresh each turn</text>
+          <text x="22" y="98" fill="#6a6a72" font-family="JetBrains Mono" font-size="11">Gmail · Notion · Linear · Drive · Calendar · Slack</text>
+          <text x="430" y="28" text-anchor="end" fill="#6a6a72" font-family="JetBrains Mono" font-size="10">code_puppy · codex</text>
+        </g>
+
+        <g transform="translate(510 334)">
+          <rect width="450" height="120" rx="10" fill="#131317" stroke="#fb923c" stroke-width="1" opacity="0.95"/>
+          <rect width="450" height="3" fill="#fb923c"/>
+          <text x="22" y="28" fill="#fb923c" font-family="JetBrains Mono" font-size="10" letter-spacing="2">04 · PERMISSIONS</text>
+          <text x="22" y="54" fill="#ededf0" font-family="Fraunces" font-size="17" font-weight="600">Blast-radius granular</text>
+          <text x="22" y="78" fill="#a0a0a8" font-family="Inter" font-size="12">read · draft · send · destroy — preview before send</text>
+          <text x="22" y="98" fill="#6a6a72" font-family="JetBrains Mono" font-size="11">once / always / reject · plan mode default for sends</text>
+          <text x="430" y="28" text-anchor="end" fill="#6a6a72" font-family="JetBrains Mono" font-size="10">codex · opencode · Claude Code</text>
+        </g>
+
+        <!-- PERSISTENCE + MEMORY row -->
+        <g transform="translate(40 470)">
+          <rect width="450" height="120" rx="10" fill="#131317" stroke="#34d399" stroke-width="1" opacity="0.95"/>
+          <rect width="450" height="3" fill="#34d399"/>
+          <text x="22" y="28" fill="#34d399" font-family="JetBrains Mono" font-size="10" letter-spacing="2">05 · PERSISTENCE</text>
+          <text x="22" y="54" fill="#ededf0" font-family="Fraunces" font-size="17" font-weight="600">JSONL + derived artifacts</text>
+          <text x="22" y="78" fill="#a0a0a8" font-family="Inter" font-size="12">append-only · parentId branches · reverse-replay resume</text>
+          <text x="22" y="98" fill="#6a6a72" font-family="JetBrains Mono" font-size="11">drafts · decisions · sent actions · syntheses</text>
+          <text x="430" y="28" text-anchor="end" fill="#6a6a72" font-family="JetBrains Mono" font-size="10">pi · codex</text>
+        </g>
+
+        <g transform="translate(510 470)">
+          <rect width="450" height="120" rx="10" fill="#131317" stroke="#f43f5e" stroke-width="1.5" opacity="0.95"/>
+          <rect width="450" height="3" fill="#f43f5e"/>
+          <text x="22" y="28" fill="#f43f5e" font-family="JetBrains Mono" font-size="10" letter-spacing="2">06 · MEMORY ✦ NEW</text>
+          <text x="22" y="54" fill="#ededf0" font-family="Fraunces" font-size="17" font-weight="600">Three-tier with retrieval</text>
+          <text x="22" y="78" fill="#a0a0a8" font-family="Inter" font-size="12">working · session · persistent · semantic search across sessions</text>
+          <text x="22" y="98" fill="#6a6a72" font-family="JetBrains Mono" font-size="11">embedding store · staleness · contradiction tracking</text>
+        </g>
+
+        <!-- BOTTOM ROW: PROACTIVITY + PROVENANCE + DRAFTS -->
+        <g transform="translate(40 606)">
+          <rect width="295" height="120" rx="10" fill="#131317" stroke="#f43f5e" stroke-width="1.5" opacity="0.95"/>
+          <rect width="295" height="3" fill="#f43f5e"/>
+          <text x="22" y="28" fill="#f43f5e" font-family="JetBrains Mono" font-size="10" letter-spacing="2">07 · PROACTIVITY ✦ NEW</text>
+          <text x="22" y="54" fill="#ededf0" font-family="Fraunces" font-size="15" font-weight="600">Scheduled wake-ups</text>
+          <text x="22" y="76" fill="#a0a0a8" font-family="Inter" font-size="11.5">cron · webhooks · poll</text>
+          <text x="22" y="94" fill="#a0a0a8" font-family="Inter" font-size="11.5">budget caps · idempotency</text>
+          <text x="22" y="112" fill="#a0a0a8" font-family="Inter" font-size="11.5">self-updating goals</text>
+        </g>
+
+        <g transform="translate(352.5 606)">
+          <rect width="295" height="120" rx="10" fill="#131317" stroke="#f43f5e" stroke-width="1.5" opacity="0.95"/>
+          <rect width="295" height="3" fill="#f43f5e"/>
+          <text x="22" y="28" fill="#f43f5e" font-family="JetBrains Mono" font-size="10" letter-spacing="2">08 · PROVENANCE ✦ NEW</text>
+          <text x="22" y="54" fill="#ededf0" font-family="Fraunces" font-size="15" font-weight="600">Citations everywhere</text>
+          <text x="22" y="76" fill="#a0a0a8" font-family="Inter" font-size="11.5">(source · url · ts · conf)</text>
+          <text x="22" y="94" fill="#a0a0a8" font-family="Inter" font-size="11.5">inline [src:...] tokens</text>
+          <text x="22" y="112" fill="#a0a0a8" font-family="Inter" font-size="11.5">lineage preserved through synthesis</text>
+        </g>
+
+        <g transform="translate(665 606)">
+          <rect width="295" height="120" rx="10" fill="#131317" stroke="#f43f5e" stroke-width="1.5" opacity="0.95"/>
+          <rect width="295" height="3" fill="#f43f5e"/>
+          <text x="22" y="28" fill="#f43f5e" font-family="JetBrains Mono" font-size="10" letter-spacing="2">09 · DRAFTS ✦ NEW</text>
+          <text x="22" y="54" fill="#ededf0" font-family="Fraunces" font-size="15" font-weight="600">Refine cycle as state</text>
+          <text x="22" y="76" fill="#a0a0a8" font-family="Inter" font-size="11.5">draft v1 → annotate → revise</text>
+          <text x="22" y="94" fill="#a0a0a8" font-family="Inter" font-size="11.5">send bound to version</text>
+          <text x="22" y="112" fill="#a0a0a8" font-family="Inter" font-size="11.5">structured feedback channel</text>
+        </g>
+      </svg>
+
+      <div class="arch-legend">
+        <span class="lk cc">Claude Code</span>
+        <span class="lk pi">pi</span>
+        <span class="lk codex">codex</span>
+        <span class="lk puppy">code_puppy</span>
+        <span class="lk oc">opencode</span>
+        <span class="lk new">✦ new — gap to build</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section class="bay" style="border-bottom: none;">
+  <div class="container">
+    <div class="closing">
+      <h2>The skeleton is table stakes. The opinions — and the four gap items — are the product.</h2>
+      <p>
+        The five coding harnesses are not a roadmap. They are a <strong>vocabulary</strong>. Each contributes
+        one primitive worth keeping; none was built with the right pressures in mind to be a complete answer.
+      </p>
+      <p>
+        A knowledge-work harness that takes <strong>loop shape from Claude Code</strong>,
+        <strong>persistence from pi</strong>, <strong>permission granularity from codex</strong>,
+        <strong>agent variants from opencode</strong>, and <strong>MCP integration from code_puppy</strong>
+        gets the skeleton right for free.
+      </p>
+      <p>
+        What remains — and what the field has not yet shipped — is <em>memory that spans sessions</em>,
+        <em>proactivity that survives the user logging off</em>, <em>citations that survive synthesis</em>,
+        and <em>drafts that survive revision</em>, all as first-class objects.
+      </p>
+      <p>
+        Those four are not features. They are the architectural commitments that decide whether the agent is
+        a chat interface or a colleague.
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="container">
+    Reference report · grounded in
+    <a href="./research/01-pi.md">pi</a> ·
+    <a href="./research/02-codex.md">codex</a> ·
+    <a href="./research/03-claude-code.md">Claude Code</a> ·
+    <a href="./research/04-code-puppy.md">code_puppy</a> ·
+    <a href="./research/05-opencode.md">opencode</a> ·
+    companion to <a href="./harness-architectures.html">harness-architectures.html</a>
+  </div>
+</footer>
+
+</body>
+</html>
