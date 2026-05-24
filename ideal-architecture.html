@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture Sketch — Ideal Knowledge-Work Agent Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --bg-elev: #131317;
+    --bg-elev-2: #1a1a20;
+    --bg-elev-3: #20202a;
+    --border: #26262e;
+    --border-soft: #1e1e25;
+    --border-strong: #2e2e38;
+    --text: #ededf0;
+    --text-2: #a0a0a8;
+    --text-3: #6a6a72;
+
+    /* Inherited components — from the five coding harnesses */
+    --loop: #a78bfa;        /* Claude Code */
+    --agents: #22d3ee;      /* opencode */
+    --tools: #34d399;       /* code_puppy */
+    --perm: #fb923c;        /* codex */
+    --persist: #fbbf24;     /* pi */
+
+    /* Novel components — knowledge-work gaps */
+    --memory: #f43f5e;
+    --sched: #ec4899;
+    --prov: #818cf8;
+    --drafts: #14b8a6;
+
+    /* Status / meta */
+    --question: #f97316;
+    --question-dim: rgba(249,115,22,.10);
+    --inherit-dim: rgba(167,139,250,.10);
+    --novel-dim: rgba(244,63,94,.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(167,139,250,0.07), transparent 60%),
+      radial-gradient(1000px 500px at -10% 30%, rgba(244,63,94,0.06), transparent 60%),
+      radial-gradient(900px 400px at 50% 110%, rgba(20,184,166,0.05), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  main, header { position: relative; z-index: 1; }
+  a { color: inherit; text-decoration: none; }
+  code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  pre { overflow-x: auto; }
+  pre code { background: transparent; padding: 0; font-size: 13px; color: #cdd0d4; }
+  .mono { font-size: .9em; }
+
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  @media (max-width: 720px) { .container { padding: 0 20px; } }
+
+  header.site {
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    background: rgba(10,10,12,0.72);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  header.site .bar {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  header.site .brand {
+    font-family: 'Fraunces', serif;
+    font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  header.site .brand em { color: var(--loop); font-style: normal; }
+  header.site nav { display: flex; gap: 22px; font-size: 13px; color: var(--text-2); }
+  header.site nav a { transition: color .15s; }
+  header.site nav a:hover { color: var(--text); }
+  @media (max-width: 980px) { header.site nav { display: none; } }
+
+  /* Hero */
+  section.hero {
+    padding: 96px 0 80px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .hero .eyebrow {
+    color: var(--text-3);
+    font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; margin-bottom: 26px;
+  }
+  .hero .eyebrow .pulse {
+    display: inline-block; width: 6px; height: 6px;
+    background: var(--loop); border-radius: 50%;
+    box-shadow: 0 0 12px var(--loop);
+    margin-right: 8px; vertical-align: middle;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(38px, 5.5vw, 70px);
+    font-weight: 600; line-height: 1.04;
+    letter-spacing: -0.025em; margin-bottom: 24px;
+    max-width: 18ch;
+  }
+  .hero h1 em { font-style: italic; color: var(--text-2); font-weight: 400; }
+  .hero h1 .l { color: var(--loop); font-style: normal; font-weight: 600; }
+  .hero h1 .m { color: var(--memory); font-style: normal; font-weight: 600; }
+  .hero .lede {
+    max-width: 66ch; font-size: 18px;
+    color: var(--text-2); line-height: 1.65;
+    margin-bottom: 36px;
+  }
+  .hero .lede strong { color: var(--text); font-weight: 500; }
+  .hero .lede a { color: var(--memory); border-bottom: 1px dashed rgba(244,63,94,.3); }
+
+  .hero .keypoints {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px; background: var(--border-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px; overflow: hidden;
+    margin-top: 16px;
+  }
+  @media (max-width: 720px) { .hero .keypoints { grid-template-columns: 1fr; } }
+  .keypoints .kp {
+    background: var(--bg-elev); padding: 20px 22px;
+    font-size: 13.5px; color: var(--text-2); line-height: 1.55;
+  }
+  .keypoints .kp .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: .11em;
+    text-transform: uppercase; color: var(--text-3);
+    margin-bottom: 8px; display: block;
+  }
+  .keypoints .kp.inherit { border-top: 2px solid var(--loop); }
+  .keypoints .kp.inherit .label { color: var(--loop); }
+  .keypoints .kp.novel { border-top: 2px solid var(--memory); }
+  .keypoints .kp.novel .label { color: var(--memory); }
+  .keypoints .kp strong { color: var(--text); font-weight: 500; }
+
+  /* Section */
+  section.bay {
+    padding: 90px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  section.bay.tight { padding: 60px 0; }
+  .section-eyebrow {
+    color: var(--text-3); font-size: 12px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .section-eyebrow .num {
+    color: var(--text); margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 3.4vw, 42px);
+    font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.1; margin-bottom: 18px;
+    max-width: 26ch;
+  }
+  .section-lede {
+    max-width: 70ch; font-size: 16.5px;
+    color: var(--text-2); line-height: 1.65;
+    margin-bottom: 40px;
+  }
+  .section-lede strong { color: var(--text); font-weight: 500; }
+  .section-lede em { color: var(--memory); font-style: normal; }
+
+  /* Architecture diagram */
+  .arch-wrap {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 32px 28px;
+    overflow-x: auto;
+  }
+  .arch-svg { display: block; margin: 0 auto; min-width: 880px; max-width: 100%; }
+  .arch-legend {
+    margin-top: 28px;
+    display: flex; flex-wrap: wrap; gap: 22px;
+    font-size: 12.5px; color: var(--text-2);
+    padding-top: 24px; border-top: 1px solid var(--border-soft);
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-swatch {
+    width: 12px; height: 12px; border-radius: 3px;
+  }
+  .legend-swatch.inherit-sw { background: var(--loop); }
+  .legend-swatch.novel-sw { background: var(--memory); }
+  .legend-swatch.flow-sw { background: transparent; border: 1.5px dashed var(--text-3); }
+  .legend-item .lbl strong { color: var(--text); font-weight: 500; }
+
+  /* Component grid */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+    gap: 16px;
+  }
+  .comp-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 11px;
+    padding: 24px 24px 22px;
+    position: relative;
+    display: flex; flex-direction: column;
+    gap: 14px;
+  }
+  .comp-card.inherit { border-top: 2px solid var(--cardcolor, var(--loop)); }
+  .comp-card.novel { border-top: 2px solid var(--cardcolor, var(--memory)); }
+  .comp-card .head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px;
+  }
+  .comp-card h3 {
+    font-family: 'Fraunces', serif; font-size: 22px;
+    font-weight: 600; letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
+  .comp-card .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px; letter-spacing: .11em;
+    text-transform: uppercase;
+    padding: 4px 8px; border-radius: 4px;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .comp-card.inherit .tag { background: var(--inherit-dim); color: var(--cardcolor, var(--loop)); }
+  .comp-card.novel .tag { background: var(--novel-dim); color: var(--cardcolor, var(--memory)); }
+  .comp-card .src {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px; color: var(--text-3);
+    line-height: 1.5;
+  }
+  .comp-card .src strong { color: var(--text-2); font-weight: 500; }
+  .comp-card .desc {
+    font-size: 14px; color: var(--text-2);
+    line-height: 1.6;
+  }
+  .comp-card .desc strong { color: var(--text); font-weight: 500; }
+  .comp-card .bullets {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 13px; color: var(--text-2);
+  }
+  .comp-card .bullets li {
+    padding-left: 16px; position: relative; line-height: 1.55;
+  }
+  .comp-card .bullets li::before {
+    content: "›"; position: absolute; left: 0;
+    color: var(--cardcolor, var(--text-3));
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+  .comp-card.inherit .bullets li::before { color: var(--cardcolor); }
+  .comp-card.novel .bullets li::before { color: var(--cardcolor); }
+  .comp-card .bullets li code {
+    color: var(--text); background: var(--bg-elev-2);
+    padding: 1px 5px; border-radius: 3px;
+    font-size: 11.5px;
+  }
+
+  /* Flow walkthrough */
+  .flow-track {
+    display: grid; grid-template-columns: 32px 1fr; gap: 0;
+    position: relative;
+  }
+  .flow-rail {
+    position: relative;
+    border-right: 1.5px dashed var(--border-strong);
+  }
+  .flow-step {
+    padding: 20px 0 32px 28px;
+    position: relative;
+  }
+  .flow-step::before {
+    content: ""; position: absolute;
+    left: -7px; top: 28px;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--rail, var(--loop));
+    box-shadow: 0 0 12px var(--rail, rgba(167,139,250,0.4));
+  }
+  .flow-step .step-head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 8px;
+  }
+  .flow-step .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text-3);
+    letter-spacing: .1em;
+  }
+  .flow-step .step-comp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 3px 8px; border-radius: 3px;
+    background: var(--bg-elev-2);
+    color: var(--rail, var(--loop));
+  }
+  .flow-step h4 {
+    font-family: 'Fraunces', serif; font-size: 19px;
+    font-weight: 600; letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .flow-step p {
+    font-size: 14px; color: var(--text-2); line-height: 1.6;
+    max-width: 68ch;
+  }
+  .flow-step p code {
+    color: var(--text); background: var(--bg-elev-2);
+    padding: 1px 5px; border-radius: 3px;
+    font-size: 12px;
+  }
+  .flow-step .step-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--question);
+    background: var(--question-dim);
+    border: 1px solid rgba(249,115,22,0.25);
+    padding: 2px 7px; border-radius: 3px;
+    margin-left: 6px;
+  }
+
+  /* Open questions */
+  .q-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  .q-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 11px;
+    padding: 22px 24px 22px;
+    border-left: 3px solid var(--question);
+  }
+  .q-card .qh {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .q-card .qnum {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; color: var(--question);
+    letter-spacing: .08em;
+  }
+  .q-card .qarea {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-left: auto;
+  }
+  .q-card h4 {
+    font-family: 'Fraunces', serif; font-size: 18px;
+    font-weight: 600; letter-spacing: -0.01em;
+    line-height: 1.25; margin-bottom: 10px;
+  }
+  .q-card p {
+    font-size: 13.5px; color: var(--text-2);
+    line-height: 1.6;
+  }
+  .q-card p strong { color: var(--text); font-weight: 500; }
+  .q-card .why {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px; color: var(--text-3);
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-soft);
+  }
+  .q-card .why strong { color: var(--question); font-weight: 600; }
+
+  /* Footer */
+  footer.site {
+    padding: 50px 0 70px;
+    color: var(--text-3); font-size: 13px;
+  }
+  footer.site .links { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 14px; }
+  footer.site a {
+    color: var(--text-2);
+    border-bottom: 1px dashed var(--border-strong);
+  }
+  footer.site a:hover { color: var(--text); border-bottom-color: var(--text-2); }
+
+  /* Misc */
+  .pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 3px 8px; border-radius: 3px;
+    background: var(--bg-elev-2); color: var(--text-3);
+    margin-right: 6px;
+  }
+  .pill.inh { color: var(--loop); background: var(--inherit-dim); }
+  .pill.nov { color: var(--memory); background: var(--novel-dim); }
+  .pill.q { color: var(--question); background: var(--question-dim); }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand">Knowledge-Work Harness <em>·</em> Architecture Sketch</div>
+    <nav>
+      <a href="#thesis">Thesis</a>
+      <a href="#map">Map</a>
+      <a href="#components">Components</a>
+      <a href="#flow">Flow</a>
+      <a href="#questions">Open questions</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow"><span class="pulse"></span>Architecture sketch · synthesizes the five-harness study + KNOWLEDGE-WORK-HARNESS.md</div>
+    <h1>The <span class="l">skeleton</span> from five coding harnesses. The <span class="m">commitments</span> nobody has shipped.</h1>
+    <p class="lede">
+      An ideal knowledge-work agent harness inherits six primitives from <strong>pi</strong>, <strong>Claude&nbsp;Code</strong>, <strong>codex</strong>, <strong>code_puppy</strong>, and <strong>opencode</strong> — and adds four architectural commitments those harnesses never had to make. This page sketches the components and how they fit together, flags what is borrowed versus invented, and names the questions that more research will need to answer before any of this is built.
+    </p>
+    <div class="keypoints">
+      <div class="kp inherit">
+        <span class="label">Borrowed · six primitives</span>
+        <strong>Loop, sub-agents, tools, permissions, persistence</strong> — table stakes lifted from the coding harnesses. Mature, well-understood, low-risk to clone.
+      </div>
+      <div class="kp novel">
+        <span class="label">Novel · four commitments</span>
+        <strong>Layered memory, proactive scheduler, provenance lineage, draft as first-class object</strong> — these are where the engineering investment lives, and where open questions remain.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THESIS -->
+<section class="bay" id="thesis">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Thesis</div>
+    <h2 class="section-title">Knowledge work breaks three coding-harness assumptions.</h2>
+    <p class="section-lede">
+      Verification is no longer free (no compiler, no test suite). Blast radius is no longer recoverable (a sent email is unsendable). Source-of-truth is no longer the filesystem (it's a scattered, conversational substrate). Each of these reshapes a layer of the harness. The architecture below is what falls out — six layers cloned, four layers invented.
+    </p>
+
+    <div class="comp-grid">
+      <div class="comp-card inherit" style="--cardcolor: var(--loop);">
+        <div class="head">
+          <h3>Verification asymmetry</h3>
+          <span class="tag">Pressure</span>
+        </div>
+        <p class="desc">
+          A coding agent gets <code>tsc</code>, <code>pytest</code>, and the next tool call as ground-truth checks. A knowledge-work agent gets text back from a <code>read_email</code> call — no pass/fail. The loop has to model verification itself: critique sub-agents, draft-then-refine cycles, explicit checkpoints.
+        </p>
+      </div>
+      <div class="comp-card inherit" style="--cardcolor: var(--perm);">
+        <div class="head">
+          <h3>Blast-radius asymmetry</h3>
+          <span class="tag">Pressure</span>
+        </div>
+        <p class="desc">
+          <code>rm -rf node_modules</code> is annoying. A misrouted email or triple-booked CEO meeting is socially expensive and not undoable. Permissions can no longer treat all writes as equivalent — a small minority of actions need preview-then-confirm as the default.
+        </p>
+      </div>
+      <div class="comp-card novel" style="--cardcolor: var(--memory);">
+        <div class="head">
+          <h3>Source-of-truth asymmetry</h3>
+          <span class="tag">Pressure</span>
+        </div>
+        <p class="desc">
+          Coding agents anchor to the filesystem and git. Knowledge-work facts live in a Slack thread, a draft Notion page, an unread email reply, and what was said an hour ago. Memory cannot be punted to "summarize when full" — the conversation <em>is</em> the substrate.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE MAP -->
+<section class="bay" id="map">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Architecture map</div>
+    <h2 class="section-title">Ten components, two provenances, one loop.</h2>
+    <p class="section-lede">
+      Components shaded <strong style="color: var(--loop);">purple-spectrum</strong> are inherited from the five coding harnesses studied. Components shaded <strong style="color: var(--memory);">rose-spectrum</strong> are <em>novel</em> — they have no analog in the coding harnesses and are the architectural investments a knowledge-work harness has to make. Dashed arrows show data flow; solid borders are containment.
+    </p>
+
+    <div class="arch-wrap">
+      <svg class="arch-svg" viewBox="0 0 1180 1020" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif" font-size="12">
+
+        <defs>
+          <!-- arrow markers -->
+          <marker id="arrow-text" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6a6a72"/>
+          </marker>
+          <marker id="arrow-loop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa"/>
+          </marker>
+          <marker id="arrow-mem" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/>
+          </marker>
+          <marker id="arrow-prov" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#818cf8"/>
+          </marker>
+
+          <!-- box styles -->
+          <linearGradient id="bg-loop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a1a20"/>
+            <stop offset="100%" stop-color="#15151a"/>
+          </linearGradient>
+          <linearGradient id="bg-novel" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1c1418"/>
+            <stop offset="100%" stop-color="#15101a"/>
+          </linearGradient>
+        </defs>
+
+        <!-- ROW 1: USER SURFACE -->
+        <g>
+          <rect x="40" y="20" width="1100" height="92" rx="10" fill="url(#bg-loop)" stroke="#26262e" stroke-width="1"/>
+          <text x="60" y="48" fill="#6a6a72" font-size="10" letter-spacing="2" font-family="JetBrains Mono">USER SURFACE</text>
+
+          <rect x="60" y="60" width="200" height="42" rx="6" fill="#131317" stroke="#a78bfa" stroke-width="1"/>
+          <text x="160" y="78" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Chat / Steering</text>
+          <text x="160" y="93" text-anchor="middle" fill="#6a6a72" font-size="10.5">mid-turn input, follow-ups</text>
+
+          <rect x="280" y="60" width="200" height="42" rx="6" fill="#131317" stroke="#14b8a6" stroke-width="1"/>
+          <text x="380" y="78" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Draft Editor</text>
+          <text x="380" y="93" text-anchor="middle" fill="#6a6a72" font-size="10.5">versioned, collaborative</text>
+
+          <rect x="500" y="60" width="200" height="42" rx="6" fill="#131317" stroke="#a78bfa" stroke-width="1"/>
+          <text x="600" y="78" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Artifact Panel</text>
+          <text x="600" y="93" text-anchor="middle" fill="#6a6a72" font-size="10.5">decisions, sent actions</text>
+
+          <rect x="720" y="60" width="200" height="42" rx="6" fill="#131317" stroke="#818cf8" stroke-width="1"/>
+          <text x="820" y="78" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Citation Overlay</text>
+          <text x="820" y="93" text-anchor="middle" fill="#6a6a72" font-size="10.5">hover-to-source</text>
+
+          <rect x="940" y="60" width="180" height="42" rx="6" fill="#131317" stroke="#ec4899" stroke-width="1"/>
+          <text x="1030" y="78" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Schedule Dock</text>
+          <text x="1030" y="93" text-anchor="middle" fill="#6a6a72" font-size="10.5">background loops</text>
+        </g>
+
+        <!-- arrows from user surface down -->
+        <line x1="590" y1="112" x2="590" y2="140" stroke="#6a6a72" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-text)"/>
+
+        <!-- ROW 2: ORCHESTRATION LOOP -->
+        <g>
+          <rect x="40" y="140" width="1100" height="120" rx="10" fill="url(#bg-loop)" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="60" y="166" fill="#a78bfa" font-size="10" letter-spacing="2" font-family="JetBrains Mono">ORCHESTRATION LOOP · async generator · Claude Code shape · pi steering split</text>
+
+          <rect x="60" y="180" width="500" height="62" rx="6" fill="#131317" stroke="#a78bfa" stroke-width="1"/>
+          <text x="310" y="202" text-anchor="middle" fill="#ededf0" font-size="13.5" font-weight="600">queryLoop</text>
+          <text x="310" y="220" text-anchor="middle" fill="#a0a0a8" font-size="11.5">yield events · turn execution · compaction visible</text>
+          <text x="310" y="234" text-anchor="middle" fill="#6a6a72" font-size="10.5" font-family="JetBrains Mono">outer: follow-ups   inner: steering + turn</text>
+
+          <rect x="580" y="180" width="240" height="62" rx="6" fill="#131317" stroke="#a78bfa" stroke-width="1"/>
+          <text x="700" y="202" text-anchor="middle" fill="#ededf0" font-size="13.5" font-weight="600">Turn Dispatcher</text>
+          <text x="700" y="220" text-anchor="middle" fill="#a0a0a8" font-size="11.5">concurrent/serial batching</text>
+          <text x="700" y="234" text-anchor="middle" fill="#6a6a72" font-size="10.5" font-family="JetBrains Mono">isConcurrencySafe()</text>
+
+          <rect x="840" y="180" width="280" height="62" rx="6" fill="#131317" stroke="#a78bfa" stroke-width="1"/>
+          <text x="980" y="202" text-anchor="middle" fill="#ededf0" font-size="13.5" font-weight="600">Compaction Cascade</text>
+          <text x="980" y="220" text-anchor="middle" fill="#a0a0a8" font-size="11.5">micro / auto / snip — observable</text>
+          <text x="980" y="234" text-anchor="middle" fill="#6a6a72" font-size="10.5" font-family="JetBrains Mono">writes to session memory (not lossy)</text>
+        </g>
+
+        <!-- ROW 3: SUB-AGENTS | SCHEDULER -->
+        <g>
+          <line x1="280" y1="260" x2="280" y2="290" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-text)"/>
+          <line x1="900" y1="260" x2="900" y2="290" stroke="#ec4899" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-text)"/>
+
+          <rect x="40" y="290" width="700" height="120" rx="10" fill="url(#bg-loop)" stroke="#22d3ee" stroke-width="1.5"/>
+          <text x="60" y="316" fill="#22d3ee" font-size="10" letter-spacing="2" font-family="JetBrains Mono">SUB-AGENT VARIANTS · opencode AgentVariants pattern</text>
+
+          <rect x="60" y="330" width="120" height="62" rx="6" fill="#131317" stroke="#22d3ee" stroke-width="1"/>
+          <text x="120" y="354" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">primary</text>
+          <text x="120" y="370" text-anchor="middle" fill="#6a6a72" font-size="10">user-facing</text>
+          <text x="120" y="384" text-anchor="middle" fill="#6a6a72" font-size="10">full perms</text>
+
+          <rect x="195" y="330" width="120" height="62" rx="6" fill="#131317" stroke="#22d3ee" stroke-width="1"/>
+          <text x="255" y="354" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">research</text>
+          <text x="255" y="370" text-anchor="middle" fill="#6a6a72" font-size="10">isolated context</text>
+          <text x="255" y="384" text-anchor="middle" fill="#6a6a72" font-size="10">read-only</text>
+
+          <rect x="330" y="330" width="120" height="62" rx="6" fill="#131317" stroke="#22d3ee" stroke-width="1"/>
+          <text x="390" y="354" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">draft</text>
+          <text x="390" y="370" text-anchor="middle" fill="#6a6a72" font-size="10">compose</text>
+          <text x="390" y="384" text-anchor="middle" fill="#6a6a72" font-size="10">local-write</text>
+
+          <rect x="465" y="330" width="120" height="62" rx="6" fill="#131317" stroke="#22d3ee" stroke-width="1"/>
+          <text x="525" y="354" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">critique</text>
+          <text x="525" y="370" text-anchor="middle" fill="#6a6a72" font-size="10">review drafts</text>
+          <text x="525" y="384" text-anchor="middle" fill="#6a6a72" font-size="10">read-only</text>
+
+          <rect x="600" y="330" width="120" height="62" rx="6" fill="#131317" stroke="#22d3ee" stroke-width="1"/>
+          <text x="660" y="354" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">summarize</text>
+          <text x="660" y="370" text-anchor="middle" fill="#6a6a72" font-size="10">compress</text>
+          <text x="660" y="384" text-anchor="middle" fill="#6a6a72" font-size="10">memory-write</text>
+
+          <rect x="760" y="290" width="380" height="120" rx="10" fill="url(#bg-novel)" stroke="#ec4899" stroke-width="1.5"/>
+          <text x="780" y="316" fill="#ec4899" font-size="10" letter-spacing="2" font-family="JetBrains Mono">PROACTIVE SCHEDULER · NOVEL</text>
+
+          <rect x="780" y="330" width="160" height="62" rx="6" fill="#131317" stroke="#ec4899" stroke-width="1"/>
+          <text x="860" y="352" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Triggers</text>
+          <text x="860" y="368" text-anchor="middle" fill="#6a6a72" font-size="10.5">cron · webhook · poll</text>
+          <text x="860" y="382" text-anchor="middle" fill="#6a6a72" font-size="10.5">wake the loop</text>
+
+          <rect x="955" y="330" width="170" height="62" rx="6" fill="#131317" stroke="#ec4899" stroke-width="1"/>
+          <text x="1040" y="352" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Budget Cap</text>
+          <text x="1040" y="368" text-anchor="middle" fill="#6a6a72" font-size="10.5">$/tokens/calls</text>
+          <text x="1040" y="382" text-anchor="middle" fill="#6a6a72" font-size="10.5">idempotency keys</text>
+        </g>
+
+        <!-- ROW 4: PERMISSION GATE -->
+        <g>
+          <line x1="390" y1="410" x2="390" y2="440" stroke="#fb923c" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-text)"/>
+          <line x1="900" y1="410" x2="900" y2="440" stroke="#fb923c" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-text)"/>
+
+          <rect x="40" y="440" width="1100" height="100" rx="10" fill="url(#bg-loop)" stroke="#fb923c" stroke-width="1.5"/>
+          <text x="60" y="466" fill="#fb923c" font-size="10" letter-spacing="2" font-family="JetBrains Mono">PERMISSION GATE · codex GranularApprovalConfig · opencode once/always/reject · reframed for blast radius</text>
+
+          <rect x="60" y="480" width="250" height="48" rx="6" fill="#131317" stroke="#34d399" stroke-width="1"/>
+          <text x="185" y="500" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Reads</text>
+          <text x="185" y="516" text-anchor="middle" fill="#6a6a72" font-size="10.5">search inbox · fetch doc · CRM</text>
+          <text x="185" y="526" text-anchor="middle" fill="#34d399" font-size="10" font-family="JetBrains Mono">auto-allow · silent</text>
+
+          <rect x="325" y="480" width="250" height="48" rx="6" fill="#131317" stroke="#fbbf24" stroke-width="1"/>
+          <text x="450" y="500" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Local drafts</text>
+          <text x="450" y="516" text-anchor="middle" fill="#6a6a72" font-size="10.5">create draft · save scratch note</text>
+          <text x="450" y="526" text-anchor="middle" fill="#fbbf24" font-size="10" font-family="JetBrains Mono">auto-accept · toast</text>
+
+          <rect x="590" y="480" width="250" height="48" rx="6" fill="#131317" stroke="#fb923c" stroke-width="1.5"/>
+          <text x="715" y="500" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">External sends</text>
+          <text x="715" y="516" text-anchor="middle" fill="#6a6a72" font-size="10.5">send email · post · share · book</text>
+          <text x="715" y="526" text-anchor="middle" fill="#fb923c" font-size="10" font-family="JetBrains Mono">always ask · preview modal</text>
+
+          <rect x="855" y="480" width="265" height="48" rx="6" fill="#131317" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="987" y="500" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Destructive</text>
+          <text x="987" y="516" text-anchor="middle" fill="#6a6a72" font-size="10.5">delete · cancel · archive</text>
+          <text x="987" y="526" text-anchor="middle" fill="#f43f5e" font-size="10" font-family="JetBrains Mono">always ask · diff · rollback</text>
+        </g>
+
+        <!-- ROW 5: TOOLS | DRAFTS -->
+        <g>
+          <line x1="200" y1="540" x2="200" y2="570" stroke="#34d399" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-text)"/>
+          <line x1="980" y1="540" x2="980" y2="570" stroke="#14b8a6" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-text)"/>
+
+          <rect x="40" y="570" width="600" height="120" rx="10" fill="url(#bg-loop)" stroke="#34d399" stroke-width="1.5"/>
+          <text x="60" y="596" fill="#34d399" font-size="10" letter-spacing="2" font-family="JetBrains Mono">TOOL REGISTRY · MCP-first · code_puppy two-pass · codex per-turn</text>
+
+          <rect x="60" y="610" width="170" height="68" rx="6" fill="#131317" stroke="#34d399" stroke-width="1"/>
+          <text x="145" y="632" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Native tools</text>
+          <text x="145" y="648" text-anchor="middle" fill="#6a6a72" font-size="10.5">read_memory</text>
+          <text x="145" y="662" text-anchor="middle" fill="#6a6a72" font-size="10.5">save_draft</text>
+          <text x="145" y="676" text-anchor="middle" fill="#6a6a72" font-size="10.5">spawn_variant</text>
+
+          <rect x="245" y="610" width="180" height="68" rx="6" fill="#131317" stroke="#34d399" stroke-width="1"/>
+          <text x="335" y="632" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">MCP servers</text>
+          <text x="335" y="648" text-anchor="middle" fill="#6a6a72" font-size="10.5">Gmail · Notion · Slack</text>
+          <text x="335" y="662" text-anchor="middle" fill="#6a6a72" font-size="10.5">Linear · Drive · Calendar</text>
+          <text x="335" y="676" text-anchor="middle" fill="#6a6a72" font-size="10.5">CRM · Airtable</text>
+
+          <rect x="440" y="610" width="185" height="68" rx="6" fill="#131317" stroke="#34d399" stroke-width="1"/>
+          <text x="532" y="632" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Resolver</text>
+          <text x="532" y="648" text-anchor="middle" fill="#6a6a72" font-size="10.5">probe → filter dupes</text>
+          <text x="532" y="662" text-anchor="middle" fill="#6a6a72" font-size="10.5">re-register each turn</text>
+          <text x="532" y="676" text-anchor="middle" fill="#6a6a72" font-size="10.5">OAuth/scope refresh</text>
+
+          <rect x="660" y="570" width="480" height="120" rx="10" fill="url(#bg-novel)" stroke="#14b8a6" stroke-width="1.5"/>
+          <text x="680" y="596" fill="#14b8a6" font-size="10" letter-spacing="2" font-family="JetBrains Mono">DRAFT STATE MACHINE · NOVEL · first-class artifact, not a tool call</text>
+
+          <rect x="680" y="610" width="130" height="68" rx="6" fill="#131317" stroke="#14b8a6" stroke-width="1"/>
+          <text x="745" y="632" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">pending</text>
+          <text x="745" y="648" text-anchor="middle" fill="#6a6a72" font-size="10.5">v1 created by</text>
+          <text x="745" y="662" text-anchor="middle" fill="#6a6a72" font-size="10.5">draft variant</text>
+
+          <rect x="825" y="610" width="140" height="68" rx="6" fill="#131317" stroke="#14b8a6" stroke-width="1"/>
+          <text x="895" y="632" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">reviewed</text>
+          <text x="895" y="648" text-anchor="middle" fill="#6a6a72" font-size="10.5">v2..vN deltas</text>
+          <text x="895" y="662" text-anchor="middle" fill="#6a6a72" font-size="10.5">user edits + critique</text>
+
+          <rect x="980" y="610" width="140" height="68" rx="6" fill="#131317" stroke="#14b8a6" stroke-width="1"/>
+          <text x="1050" y="632" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">sent (vN)</text>
+          <text x="1050" y="648" text-anchor="middle" fill="#6a6a72" font-size="10.5">bound to perm grant</text>
+          <text x="1050" y="662" text-anchor="middle" fill="#6a6a72" font-size="10.5">version locked</text>
+        </g>
+
+        <!-- ROW 6: STATE & MEMORY -->
+        <g>
+          <line x1="335" y1="690" x2="335" y2="720" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-text)"/>
+          <line x1="895" y1="690" x2="895" y2="720" stroke="#f43f5e" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-mem)"/>
+
+          <rect x="40" y="720" width="1100" height="160" rx="10" fill="url(#bg-novel)" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="60" y="746" fill="#f43f5e" font-size="10" letter-spacing="2" font-family="JetBrains Mono">STATE &amp; MEMORY · pi JSONL substrate · derived artifacts view · layered memory (3 of 4 tiers are NOVEL)</text>
+
+          <rect x="60" y="760" width="245" height="100" rx="6" fill="#131317" stroke="#fbbf24" stroke-width="1"/>
+          <text x="182" y="784" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Working context</text>
+          <text x="182" y="800" text-anchor="middle" fill="#fbbf24" font-size="10" font-family="JetBrains Mono">tier 1 · borrowed</text>
+          <text x="182" y="822" text-anchor="middle" fill="#a0a0a8" font-size="11">current turn, full fidelity</text>
+          <text x="182" y="838" text-anchor="middle" fill="#6a6a72" font-size="10.5">window-bounded</text>
+          <text x="182" y="852" text-anchor="middle" fill="#6a6a72" font-size="10.5">feeds the LLM</text>
+
+          <rect x="320" y="760" width="245" height="100" rx="6" fill="#131317" stroke="#fbbf24" stroke-width="1"/>
+          <text x="442" y="784" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Session log</text>
+          <text x="442" y="800" text-anchor="middle" fill="#fbbf24" font-size="10" font-family="JetBrains Mono">tier 2 · borrowed (pi)</text>
+          <text x="442" y="822" text-anchor="middle" fill="#a0a0a8" font-size="11">append-only JSONL</text>
+          <text x="442" y="838" text-anchor="middle" fill="#6a6a72" font-size="10.5">parentId branching</text>
+          <text x="442" y="852" text-anchor="middle" fill="#6a6a72" font-size="10.5">reverse-replay resume</text>
+
+          <rect x="580" y="760" width="265" height="100" rx="6" fill="#131317" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="712" y="784" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Persistent memory</text>
+          <text x="712" y="800" text-anchor="middle" fill="#f43f5e" font-size="10" font-family="JetBrains Mono">tier 3 · NOVEL</text>
+          <text x="712" y="822" text-anchor="middle" fill="#a0a0a8" font-size="11">vector + semantic · cross-session</text>
+          <text x="712" y="838" text-anchor="middle" fill="#6a6a72" font-size="10.5">retrieval at turn start</text>
+          <text x="712" y="852" text-anchor="middle" fill="#6a6a72" font-size="10.5">staleness signal</text>
+
+          <rect x="860" y="760" width="260" height="100" rx="6" fill="#131317" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="990" y="784" text-anchor="middle" fill="#ededf0" font-size="13" font-weight="600">Artifact index</text>
+          <text x="990" y="800" text-anchor="middle" fill="#f43f5e" font-size="10" font-family="JetBrains Mono">tier 4 · NOVEL</text>
+          <text x="990" y="822" text-anchor="middle" fill="#a0a0a8" font-size="11">drafts · decisions · sent</text>
+          <text x="990" y="838" text-anchor="middle" fill="#6a6a72" font-size="10.5">derived from JSONL</text>
+          <text x="990" y="852" text-anchor="middle" fill="#6a6a72" font-size="10.5">user-facing unit of work</text>
+        </g>
+
+        <!-- ROW 7: PROVENANCE -->
+        <g>
+          <line x1="590" y1="880" x2="590" y2="910" stroke="#818cf8" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arrow-prov)"/>
+
+          <rect x="40" y="910" width="1100" height="92" rx="10" fill="url(#bg-novel)" stroke="#818cf8" stroke-width="1.5"/>
+          <text x="60" y="936" fill="#818cf8" font-size="10" letter-spacing="2" font-family="JetBrains Mono">PROVENANCE LAYER · NOVEL · cross-cutting · every fact carries source lineage</text>
+
+          <rect x="60" y="950" width="250" height="42" rx="6" fill="#131317" stroke="#818cf8" stroke-width="1"/>
+          <text x="185" y="970" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Source ledger</text>
+          <text x="185" y="985" text-anchor="middle" fill="#6a6a72" font-size="10.5">(id, url, retrieved_at, confidence)</text>
+
+          <rect x="325" y="950" width="250" height="42" rx="6" fill="#131317" stroke="#818cf8" stroke-width="1"/>
+          <text x="450" y="970" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Inline citations</text>
+          <text x="450" y="985" text-anchor="middle" fill="#6a6a72" font-size="10.5">[src:gmail-thread-abc]</text>
+
+          <rect x="590" y="950" width="250" height="42" rx="6" fill="#131317" stroke="#818cf8" stroke-width="1"/>
+          <text x="715" y="970" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Lineage graph</text>
+          <text x="715" y="985" text-anchor="middle" fill="#6a6a72" font-size="10.5">"X true because S₁ ∧ S₂"</text>
+
+          <rect x="855" y="950" width="265" height="42" rx="6" fill="#131317" stroke="#818cf8" stroke-width="1"/>
+          <text x="987" y="970" text-anchor="middle" fill="#ededf0" font-size="12.5" font-weight="600">Survive compaction</text>
+          <text x="987" y="985" text-anchor="middle" fill="#6a6a72" font-size="10.5">citations re-attached on summarize</text>
+        </g>
+
+      </svg>
+
+      <div class="arch-legend">
+        <div class="legend-item">
+          <span class="legend-swatch inherit-sw"></span>
+          <span class="lbl"><strong>Inherited</strong> — clone from the five coding harnesses</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-swatch novel-sw"></span>
+          <span class="lbl"><strong>Novel</strong> — invent for knowledge work</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-swatch flow-sw"></span>
+          <span class="lbl"><strong>Dashed</strong> — data flow (top-to-bottom)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section class="bay" id="components">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Components</div>
+    <h2 class="section-title">Six borrowed primitives, four novel commitments.</h2>
+    <p class="section-lede">
+      Each card is a component from the architecture map. <strong>Inherited</strong> cards cite the specific file and pattern in the source harness; <strong>novel</strong> cards describe a behaviour that doesn't exist in any of the five and flag the deepest open questions. None of the novel components are speculative — they all fall directly out of the verification, blast-radius, or source-of-truth pressures.
+    </p>
+
+    <div class="comp-grid">
+
+      <!-- INHERITED -->
+      <div class="comp-card inherit" style="--cardcolor: var(--loop);">
+        <div class="head">
+          <h3>Orchestration Loop</h3>
+          <span class="tag">Inherited</span>
+        </div>
+        <div class="src"><strong>From Claude Code</strong> · <code>src/query.ts</code> queryLoop<br/><strong>+ pi</strong> · <code>agent-loop.ts:170</code> outer/inner pattern</div>
+        <p class="desc">
+          An <code>AsyncGenerator</code> that yields events as work happens, with pi's two-loop split: outer iterates follow-up turns, inner handles mid-turn steering. The yield boundary is the user's only window into a 30-minute deep-research operation that otherwise looks like a spinner.
+        </p>
+        <ul class="bullets">
+          <li>Steering interrupts mid-turn without resetting context</li>
+          <li>Yields <code>StreamEvent</code>, <code>Message</code>, compaction-progress</li>
+          <li>Survives process restarts via JSONL replay</li>
+        </ul>
+      </div>
+
+      <div class="comp-card inherit" style="--cardcolor: var(--agents);">
+        <div class="head">
+          <h3>Sub-Agent Variants</h3>
+          <span class="tag">Inherited</span>
+        </div>
+        <div class="src"><strong>From opencode</strong> · <code>agent/agent.ts</code> AgentVariants<br/><strong>+ Claude Code</strong> · <code>Task</code> tool for isolation</div>
+        <p class="desc">
+          Five variants share session history but get distinct system prompts and permission scopes. Variants are cheap (same model, different prompt). <code>research</code> spawned via Task-style isolation keeps fifty pages of scraped reading out of the main context.
+        </p>
+        <ul class="bullets">
+          <li><code>primary</code>, <code>research</code>, <code>draft</code>, <code>critique</code>, <code>summarize</code></li>
+          <li><code>critique</code> is read-only, looks for unsupported claims</li>
+          <li>Variant model could expand: <code>schedule</code>, <code>negotiate</code>, <code>brief</code></li>
+        </ul>
+      </div>
+
+      <div class="comp-card inherit" style="--cardcolor: var(--tools);">
+        <div class="head">
+          <h3>Tool Registry</h3>
+          <span class="tag">Inherited</span>
+        </div>
+        <div class="src"><strong>From code_puppy</strong> · <code>_builder.py</code> two-pass<br/><strong>+ codex</strong> · <code>turn.rs</code> built_tools() per turn</div>
+        <p class="desc">
+          MCP-first surface for SaaS-shaped knowledge work (Gmail, Notion, Linear, Drive, Calendar, Slack). Two-pass registration probes native tool names first, then loads MCP and filters collisions. Per-turn re-registration handles mid-session OAuth, scope, and workspace changes.
+        </p>
+        <ul class="bullets">
+          <li>Native: <code>save_draft</code>, <code>read_memory</code>, <code>spawn_variant</code></li>
+          <li>Name collision = silent shadow → catastrophic in knowledge work</li>
+          <li>Tool set is not stable across long sessions</li>
+        </ul>
+      </div>
+
+      <div class="comp-card inherit" style="--cardcolor: var(--perm);">
+        <div class="head">
+          <h3>Permission Gate</h3>
+          <span class="tag">Inherited &amp; reframed</span>
+        </div>
+        <div class="src"><strong>From codex</strong> · <code>exec_policy.rs</code> GranularApprovalConfig<br/><strong>+ opencode</strong> · once/always/reject<br/><strong>+ Claude Code</strong> · plan mode as preview</div>
+        <p class="desc">
+          Codex's two-axis shape, re-axed for blast radius rather than filesystem write. Four action classes with different friction defaults. Preview is part of the permission UX — for external sends the modal shows the actual email before any approval can be granted.
+        </p>
+        <ul class="bullets">
+          <li>read / local-draft / external-send / destructive</li>
+          <li>once-per-thread is the humane default, not once-forever</li>
+          <li>preview-before-send is the new "plan mode"</li>
+        </ul>
+      </div>
+
+      <div class="comp-card inherit" style="--cardcolor: var(--persist);">
+        <div class="head">
+          <h3>Session Log</h3>
+          <span class="tag">Inherited</span>
+        </div>
+        <div class="src"><strong>From pi</strong> · <code>~/.pi/agent/sessions/{id}.jsonl</code><br/><strong>+ codex</strong> · reverse-replay reconstruction</div>
+        <p class="desc">
+          Append-only JSONL is the substrate. Diffs well, forks well (a fork is the prefix copied to a new file), debuggable with <code>jq</code>. Resume scans backward to the most recent compaction checkpoint then re-applies selective forward events.
+        </p>
+        <ul class="bullets">
+          <li>Branching via <code>parentId</code> — every fork preserved</li>
+          <li>Safe for concurrent writes</li>
+          <li>Compaction writes a checkpoint, doesn't truncate</li>
+        </ul>
+      </div>
+
+      <div class="comp-card inherit" style="--cardcolor: var(--persist);">
+        <div class="head">
+          <h3>Working Context</h3>
+          <span class="tag">Inherited</span>
+        </div>
+        <div class="src"><strong>From Claude Code</strong> · <code>src/query.ts</code> three-tier compaction<br/><strong>+ codex</strong> · <code>AutoCompactWindow</code></div>
+        <p class="desc">
+          The window the LLM actually sees this turn. Micro/auto/snip cascade keeps it under budget. Critically, compaction writes a <em>checkpoint</em> into the session log rather than dropping the trimmed messages — they're still recoverable from disk.
+        </p>
+        <ul class="bullets">
+          <li>Visible compaction events (yielded to UI)</li>
+          <li>Re-hydrates from session log on resume</li>
+          <li>System context (<code>git status</code> analog) becomes "today's calendar"</li>
+        </ul>
+      </div>
+
+      <!-- NOVEL -->
+      <div class="comp-card novel" style="--cardcolor: var(--memory);">
+        <div class="head">
+          <h3>Persistent Memory</h3>
+          <span class="tag">Novel</span>
+        </div>
+        <div class="src"><strong>No analog in the five</strong> · closest is CLAUDE.md (static, global)</div>
+        <p class="desc">
+          A vector store + semantic index over every artifact, decision, draft, and turn-level snippet across sessions. Retrieval auto-fires at turn start, conditioned on the current question. Each chunk carries source, retrieval time, confidence, and a <em>contradiction</em> link if a later turn disagreed with it.
+        </p>
+        <ul class="bullets">
+          <li>Staleness signal: 6-month-old "deadline" facts decay</li>
+          <li>Cross-session: "last Tuesday Bob said…" is recoverable</li>
+          <li>Provenance on every chunk (see Provenance Layer)</li>
+        </ul>
+      </div>
+
+      <div class="comp-card novel" style="--cardcolor: var(--sched);">
+        <div class="head">
+          <h3>Proactive Scheduler</h3>
+          <span class="tag">Novel</span>
+        </div>
+        <div class="src"><strong>No analog in the five</strong> · closest is codex's <code>submission_loop</code> (event-driven, no scheduling primitive)</div>
+        <p class="desc">
+          A cron/webhook/poll layer that <em>wakes the agent</em> on schedule or external signal: monitor a customer's tickets, summarize merged PRs every Monday, alert on competitor filings. Each scheduled job carries a budget cap and idempotency keys so a runaway watcher can't drain $400 overnight or re-alert on the same event.
+        </p>
+        <ul class="bullets">
+          <li>Triggers: cron, webhook, RSS, polling, agent self-schedule</li>
+          <li>Budget enforcement: $/tokens/calls per job</li>
+          <li>Goal-state update — agent can refine its own watch criteria</li>
+        </ul>
+      </div>
+
+      <div class="comp-card novel" style="--cardcolor: var(--prov);">
+        <div class="head">
+          <h3>Provenance Layer</h3>
+          <span class="tag">Novel · cross-cutting</span>
+        </div>
+        <div class="src"><strong>No analog in the five</strong> · academic LLM research has versions, none productionized as harness-level concern</div>
+        <p class="desc">
+          Every retrieved fact carries <code>(source_id, source_url, retrieved_at, confidence)</code>. The LLM emits inline citations the UI renders as clickable hover-cards showing the source snippet. Synthesis preserves lineage: "Q3 deadline is May 15 [src:gmail-thread-abc]". <em>Citations must survive compaction</em> — they re-attach to summarized chunks.
+        </p>
+        <ul class="bullets">
+          <li>Source ledger as a join table on memory chunks</li>
+          <li>Lineage graph: synthesis preserves source DAG</li>
+          <li>Critique variant audits unsupported claims</li>
+        </ul>
+      </div>
+
+      <div class="comp-card novel" style="--cardcolor: var(--drafts);">
+        <div class="head">
+          <h3>Draft State Machine</h3>
+          <span class="tag">Novel</span>
+        </div>
+        <div class="src"><strong>No analog in the five</strong> · closest is opencode's tool-call state machine (operates on tool calls, not artifacts)</div>
+        <p class="desc">
+          "Draft email, get approval, revise on edits, send" is one logical operation in three phases — not three message turns. Drafts are first-class versioned entities, separate from messages. The <code>send</code> action binds to a specific version; ratifying a different version requires re-confirmation. Inline edits, comments, ratings all route back to the draft variant as structured input.
+        </p>
+        <ul class="bullets">
+          <li>States: <code>pending → reviewed → sent</code>, with version deltas</li>
+          <li>User feedback ≠ chat message — it's structured edit input</li>
+          <li>Send is bound to <code>(draft_id, version)</code></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FLOW -->
+<section class="bay" id="flow">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">04</span>One request, traced</div>
+    <h2 class="section-title">"Draft a board-update email to the investors, include Q3 highlights."</h2>
+    <p class="section-lede">
+      Following one realistic request through the architecture. Steps are color-coded to the component they touch. <span class="pill q">Open</span> tags mark places where the design report flagged a question that still needs research.
+    </p>
+
+    <div class="flow-track">
+      <div class="flow-rail"></div>
+      <div>
+
+        <div class="flow-step" style="--rail: var(--loop);">
+          <div class="step-head">
+            <span class="step-num">01</span>
+            <span class="step-comp">orchestration loop</span>
+          </div>
+          <h4>User submits the prompt. The outer loop accepts it as a follow-up; the inner loop opens a new turn.</h4>
+          <p>
+            The <code>queryLoop</code> yields a <code>TurnStarted</code> event to the UI. The user immediately sees activity: this matters because the next steps will take a while.
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--memory);">
+          <div class="step-head">
+            <span class="step-num">02</span>
+            <span class="step-comp">persistent memory</span>
+          </div>
+          <h4>Turn-start retrieval fires against the persistent vector store, conditioned on the prompt.</h4>
+          <p>
+            Returns: prior board updates, investor preferences ("Linda likes bullet form"), Q3 financial decisions made in past sessions. Each chunk arrives with its provenance quadruple. <span class="step-tag">open · what triggers retrieval?</span>
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--agents);">
+          <div class="step-head">
+            <span class="step-num">03</span>
+            <span class="step-comp">sub-agent · research</span>
+          </div>
+          <h4>Primary spawns a <code>research</code> variant in isolation to gather Q3 highlights from external sources.</h4>
+          <p>
+            Research variant uses MCP tools to pull from Notion (Q3 OKR doc), Linear (closed milestones), and Gmail (customer quotes). Reads about 80 pages of source material; only the synthesis returns to the main context.
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--tools);">
+          <div class="step-head">
+            <span class="step-num">04</span>
+            <span class="step-comp">tool registry · permission gate</span>
+          </div>
+          <h4>Each <code>notion.search</code>, <code>linear.list_issues</code>, <code>gmail.search</code> call passes the permission gate as a <strong>read</strong>.</h4>
+          <p>
+            Auto-allowed, silent. No friction. Every result attaches a <code>source_id</code> as it enters memory.
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--prov);">
+          <div class="step-head">
+            <span class="step-num">05</span>
+            <span class="step-comp">provenance layer</span>
+          </div>
+          <h4>The research synthesis emits inline citations; the lineage graph records "Q3 highlight #3 = synthesis(notion:abc, linear:xyz)".</h4>
+          <p>
+            The synthesis chunk now has both upstream sources and a derivation note. <span class="step-tag">open · how granular?</span>
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--agents);">
+          <div class="step-head">
+            <span class="step-num">06</span>
+            <span class="step-comp">sub-agent · draft</span>
+          </div>
+          <h4>Primary delegates composition to the <code>draft</code> variant, passing the synthesis + investor preferences.</h4>
+          <p>
+            The draft variant produces v1 of the email. The draft state machine creates a <code>Draft</code> artifact, persisted to the artifact index. The body links to its source citations.
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--agents);">
+          <div class="step-head">
+            <span class="step-num">07</span>
+            <span class="step-comp">sub-agent · critique</span>
+          </div>
+          <h4>Primary auto-spawns <code>critique</code> on draft v1 — read-only, looking for unsupported claims and tone issues.</h4>
+          <p>
+            Critique reports two unsupported claims and a tone mismatch. Primary either revises automatically (producing v2) or surfaces to user. <span class="step-tag">open · how to choose?</span>
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--drafts);">
+          <div class="step-head">
+            <span class="step-num">08</span>
+            <span class="step-comp">draft state machine · user surface</span>
+          </div>
+          <h4>Draft v2 surfaces in the user's draft editor. User makes inline edits; the editor emits structured edit events.</h4>
+          <p>
+            Edits route back to the draft variant which produces v3 as a delta. The draft is now in the <code>reviewed</code> state. <span class="step-tag">open · concurrent edit conflicts?</span>
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--perm);">
+          <div class="step-head">
+            <span class="step-num">09</span>
+            <span class="step-comp">permission gate · external send</span>
+          </div>
+          <h4>User approves send. Permission gate triggers <strong>external-send</strong> path: modal with the full rendered v3 preview, recipient list, send button.</h4>
+          <p>
+            User confirms. A grant is issued bound to <code>(draft_id, version=3)</code>. If the user later approves v4, that requires re-confirmation.
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--tools);">
+          <div class="step-head">
+            <span class="step-num">10</span>
+            <span class="step-comp">tool registry</span>
+          </div>
+          <h4><code>gmail.send</code> executes. Draft state machine transitions to <code>sent (v3)</code>; artifact index updates.</h4>
+          <p>
+            Sent action is now an immutable artifact with its own provenance pointer back to the draft, the synthesis, and the original Q3 sources.
+          </p>
+        </div>
+
+        <div class="flow-step" style="--rail: var(--persist);">
+          <div class="step-head">
+            <span class="step-num">11</span>
+            <span class="step-comp">session log · artifact index</span>
+          </div>
+          <h4>JSONL has captured every event. The artifact index has a <code>Sent</code> record. Memory ingests the new draft and outcome for next time.</h4>
+          <p>
+            Six months later, "what did I send the board about Q3?" hits the persistent memory and returns the sent artifact with its full citation tree intact.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OPEN QUESTIONS -->
+<section class="bay" id="questions">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">05</span>Open questions</div>
+    <h2 class="section-title">What more research has to answer before this is buildable.</h2>
+    <p class="section-lede">
+      The four novel components each carry hard open questions. Borrowed components also leave decisions open where the source-harness pattern doesn't transfer cleanly. These aren't paper cuts — most of them gate the architecture. Listed by area, ranked by how load-bearing they are for v1.
+    </p>
+
+    <div class="q-grid">
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q01</span><span class="qarea">memory · tier 3</span></div>
+        <h4>What goes into the vector store, and when?</h4>
+        <p>
+          Every turn? Only artifacts? Just user-ratified facts? Indexing everything risks polluting recall with noise; indexing only artifacts loses the implicit context ("we decided X in a side conversation"). <strong>Need:</strong> empirical study of recall quality vs. index granularity on real knowledge-work sessions.
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Wrong choice means either drowning the agent in irrelevant past context, or losing the conversational substrate that justified building memory in the first place.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q02</span><span class="qarea">memory · eviction</span></div>
+        <h4>How do you decide what to forget — and is that decision reversible?</h4>
+        <p>
+          Vector stores grow. A staleness signal is the obvious starting point, but "stale" facts often become re-relevant. Hard-delete loses the audit trail; soft-delete bloats the index. <strong>Need:</strong> a policy model that distinguishes <em>archive</em> (still queryable, downweighted) from <em>retract</em> (user explicitly disowned).
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Forgetting wrongly is worse than not remembering at all — a confidently-recalled stale fact is dangerous in a way a missing fact isn't.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q03</span><span class="qarea">memory · trust</span></div>
+        <h4>How does the agent calibrate source reliability?</h4>
+        <p>
+          A fact from a CEO email and a fact from a public web scrape are not equally trustworthy. Provenance metadata can carry a source-tier, but the calibration has to come from somewhere. Manual config? Learned from user corrections? Default trust hierarchy by source type? <strong>Need:</strong> a default model + a feedback loop.
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Without calibration, the agent will treat "blog post says X" with the same weight as "the CFO said X in writing", which is a recipe for confident hallucination.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q04</span><span class="qarea">scheduler · budget</span></div>
+        <h4>What's the right unit and scope for budget caps?</h4>
+        <p>
+          Per-job? Per-day? Per-user? Tokens, dollars, tool calls, wall-clock? A watcher that polls every 5 minutes can be cheap-per-call but expensive-per-month. <strong>Need:</strong> a multi-dimensional budget model with hard ceilings and soft warnings, plus a clear UX for "your watcher hit its cap, do you want to extend?".
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Without this, proactive loops are a fast path to surprise bills and user loss-of-trust.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q05</span><span class="qarea">scheduler · idempotency</span></div>
+        <h4>How does the agent know it has already acted on this signal?</h4>
+        <p>
+          A churn-risk watcher must not re-alert on the same ticket. The naive answer is a dedupe key per (signal, action) pair, but real signals shift slightly each poll. <strong>Need:</strong> a semantic-equivalence check, not a string match — and a model of when "this is the same thing, just updated" vs. "this is genuinely new".
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Re-alerting trains users to ignore the agent. Missing genuine new signals defeats the point of the watcher.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q06</span><span class="qarea">provenance · UI</span></div>
+        <h4>How do you surface citations without making the UI unreadable?</h4>
+        <p>
+          Inline brackets work for academic readers; they're alienating for "draft me an email" users. Hover cards, footnotes, color-coding the spans — each has trade-offs. <strong>Need:</strong> design exploration with real users on whether to render citations inline, on demand, or only when contested.
+        </p>
+        <div class="why"><strong>Why it matters:</strong> If users don't see citations, the provenance layer has built infrastructure for nothing. If they're too loud, users disable them and we're back to ungrounded synthesis.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q07</span><span class="qarea">provenance · synthesis</span></div>
+        <h4>What level of granularity does lineage track? Sentence? Claim? Document?</h4>
+        <p>
+          "X is true because S₁ ∧ S₂" is elegant but breaks down when synthesis fuses six sources into one paragraph. Per-sentence lineage is expensive; per-paragraph loses precision. <strong>Need:</strong> a tradeoff study and probably a hybrid (paragraph-level by default, sentence-level on demand when a claim is challenged).
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Lineage too coarse is non-actionable; lineage too fine is unaffordable to compute and store.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q08</span><span class="qarea">drafts · concurrency</span></div>
+        <h4>What happens when the user edits while the agent is revising?</h4>
+        <p>
+          Y-CRDT (Yjs) is the obvious primitive. But the merge model for "agent generated v3, user concurrently typed in v2" is non-trivial — operational transforms on AI-generated prose don't always make semantic sense. <strong>Need:</strong> a UX model for "agent revision in flight, you may want to wait" and a fallback for hard conflicts.
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Without a model here, the draft state machine becomes "whichever side wrote last wins", which silently destroys work.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q09</span><span class="qarea">permissions · friction</span></div>
+        <h4>How much preview-and-confirm friction is too much?</h4>
+        <p>
+          "Always ask, always preview" is safe but tedious for a power user sending fifty emails. "Once-per-thread" softens it, but threads can drift (the email I approved was to Bob's group; now you want to bcc Eve). <strong>Need:</strong> scope-aware approvals — defined by recipient set, content category, send window — not just by tool name.
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Friction in the wrong place trains users to mash "approve" by default, defeating the whole point of the gate.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q10</span><span class="qarea">memory · multi-tenant</span></div>
+        <h4>Is the persistent memory single-user, or shared across a team?</h4>
+        <p>
+          "What did we decide about the Acme deal?" is a great team query. But cross-user memory needs access control (per-source, per-recipient), conflict resolution (two PMs decided different things), and a model of who can write what. <strong>Need:</strong> a deliberate stance — single-user-only for v1, or design for multi-tenancy from day zero (the latter is much more invasive).
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Retrofitting multi-tenancy onto a single-user memory is a rewrite. Designing for it adds substantial complexity that may be wrong for solo-knowledge-worker use cases.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q11</span><span class="qarea">long-horizon · decomposition</span></div>
+        <h4>How does the agent decompose a multi-day goal into a schedule of sub-tasks?</h4>
+        <p>
+          "Investigate competitor X for two weeks and report back" needs a plan, sub-goals, midway check-ins. None of the five harnesses model this. Plan mode is single-turn. Scheduler runs single tasks. <strong>Need:</strong> a goal-state object the scheduler can read and the agent can refine over time — closer to a project than a task.
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Without this, "proactive" collapses to "scheduled" and the harness misses its highest-value use case.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="qh"><span class="qnum">Q12</span><span class="qarea">loop · observability</span></div>
+        <h4>What's the right user-facing model of a 30-minute deep research?</h4>
+        <p>
+          Yielded events let us show <em>something</em>, but a stream of "fetching… fetching… fetching…" is no better than a spinner. The user needs a model of progress: how far through, what's left, what's been found, when to expect output. <strong>Need:</strong> a progress representation that's more than logs but less than a Gantt chart.
+        </p>
+        <div class="why"><strong>Why it matters:</strong> Long-horizon tasks fail on user patience, not on capability. The progress UX is load-bearing for the harness being usable at all.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site">
+  <div class="container">
+    <div>Architecture sketch · synthesizes <code>research/01-pi.md</code> through <code>research/05-opencode.md</code> and <code>KNOWLEDGE-WORK-HARNESS.md</code>.</div>
+    <div class="links">
+      <a href="./KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+      <a href="./harness-architectures.html">Five-harness comparison</a>
+      <a href="./knowledge-work-solutions.html">Open-source gap-fillers</a>
+      <a href="./knowledge-work-harness.html">Earlier design HTML</a>
+      <a href="./README.md">README</a>
+    </div>
+  </div>
+</footer>
+
+</main>
+</body>
+</html>
