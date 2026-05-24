@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-area="prov" data-question-id="q06">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q06 · How should citations be surfaced? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06" class="current">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q06 / 12</span>
+      <span class="chip">Provenance · UI</span>
+    </div>
+    <h1>How should citations be surfaced <em>without overwhelming the user?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      If users don't see citations, the provenance layer is infrastructure for nothing. If they're too loud, users disable them and we're back to ungrounded synthesis. And: drafts get pasted into Gmail, Slack, Word — surfaces that don't render hover cards. Any citation UI that only lives in the harness loses meaning the moment the artifact leaves it.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">Visible citations build trust — even when they're random. Density does not equal accuracy.</h2>
+    <div class="findings">
+      <p>Mainstream RAG products have converged on a hybrid pattern: <em>inline numbered superscripts</em> anchored to a <em>separate source panel/sidebar</em>, with <em>hover previews</em> filling the middle ground. Perplexity is the canonical example, using teal-colored superscripts ([1], [2]) inline with the answer text, source cards stacked in a side panel, and metadata (favicon, title, domain) for scanability. ChatGPT Search uses similar inline numbered links but at a much lower density (Perplexity averages ~22 citations per answer vs ChatGPT's ~8), suggesting different beliefs about how much sourcing readers actually want. Glean Deep Research and Notion Q&amp;A both pair line-by-line citations with a panel; Granola 2.0 added inline citations with "jump to source" links pointing back into the meeting transcript.</p>
+      <p>The <a href="https://claude.com/blog/introducing-citations-api">Anthropic Citations API</a> takes a different stance: it returns structured citation objects (with start/end character offsets and <code>cited_text</code>) and explicitly leaves <em>presentation</em> to the developer. This is significant — Anthropic, Glean, and Granola all treat citations as <em>structured data attached to spans</em>, not as visible glyphs in the text. That separation is what enables the same response to render as superscripts in a chat UI, as footnotes in a PDF export, or as nothing at all when pasted into Gmail.</p>
+      <p>Academic UX research is genuinely double-edged. The Stanford/UPenn study <a href="https://ojs.aaai.org/index.php/AAAI/article/view/34550/36705">Citations and Trust in LLM Generated Responses</a> (AAAI 2025) found that <em>the mere presence of citations raised trust significantly — even when the citations were random and irrelevant</em> — but trust dropped sharply once users actually clicked through and inspected them. The 2025 Brown/MIT "Cited but Not Verified" benchmark found frontier models maintain ~94% link validity but only 39–77% factual accuracy, and that accuracy <em>degrades</em> as citation count scales (~42% drop from 2 to 150 retrievals). The implication: <em>citation density is a vanity metric</em>; what matters is whether the user can cheaply verify when they choose to.</p>
+      <p>A constraint specific to knowledge-work harnesses is <em>graceful degradation on export</em>. Drafts get pasted into Gmail, Slack, Word, or Notion — surfaces that don't render hover cards, don't preserve footnote anchors, and often strip markdown. Users actively use tools like "AI Text Cleaner" and "Clean Paste" to remove markdown noise from LLM output before sending. Any citation UI that <em>only</em> lives inside the harness will be either lost or visually corrupted the moment the artifact leaves it.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">From maximum noise to maximum stealth — with one hybrid that lets the user decide.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Perplexity-style superscripts">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Perplexity-style inline superscripts + persistent source panel</h3>
+          </div>
+          <p class="summary">Numbered superscripts ([1], [2]) at end of each claim, with a source panel showing favicon/title/snippet, mirroring Perplexity.</p>
+          <div class="how">
+            <p>Every factual span is annotated server-side with one or more citation IDs. The renderer inserts subtle colored superscripts after the punctuation, and a right-hand panel lists numbered sources with favicon, title, domain, and a 1-line snippet. Hovering a superscript highlights its source card.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Familiar pattern — users coming from Perplexity, You.com, ChatGPT Search recognize it</li>
+                <li>High verifiability: every claim has a direct anchor</li>
+                <li>Sidebar gives sources persistent presence without polluting the text</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Visually noisy for long-form drafts (briefs, emails) where 20+ superscripts ruin readability</li>
+                <li>Strips badly when pasted: [1], [2] become orphaned numbers with no panel</li>
+                <li>Research shows density does not equal accuracy and can create false confidence</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-2" data-option-name="Color-coded spans + hover">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Color-coded spans with on-demand hover cards (no visible glyphs)</h3>
+          </div>
+          <p class="summary">Sourced claims get a subtle underline or background tint; hovering reveals a citation card with quote + source. No numbers, no superscripts in the body text.</p>
+          <div class="how">
+            <p>Each claim is wrapped in a span with a citation ID. Rendering uses a 1px dotted underline in a muted accent. On hover (or tap on mobile), a popover shows the source title, favicon, quoted passage, and a "go to source" link. Granola's hover-magnifier and Sana's popovers are precedents.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Clean reading experience — drafts look like prose, not Wikipedia</li>
+                <li>Pasted output degrades to plain prose (underline disappears, no orphan numbers)</li>
+                <li>Users who don't care about provenance can ignore it; users who do can hover any spot</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>No persistent at-a-glance source list — harder to skim "where did this come from overall"</li>
+                <li>Hover doesn't work for screen readers, keyboard-only, or print/PDF without extra affordances</li>
+                <li>Lower visible "trust signal" — research shows visible citations boost trust even when fake</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-3" data-option-name="Hybrid density slider">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Hybrid — invisible-by-default spans with a togglable density slider</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">Same colored-span model as Option 2 plus a global "Show citations: off / subtle / inline / footnote" control, with a persistent panel always available.</p>
+          <div class="how">
+            <p>Citations are always present as structured metadata on spans. The user (or output format) picks the rendering: "off" for clean email drafts, "subtle" underline for in-app reading, "inline" superscripts for research briefs, "footnote" for exported reports. The panel is always one click away regardless of mode. Anthropic's API model — structured citation data, presentation-agnostic — is the architectural precedent.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Matches the artifact type: emails get clean prose, research briefs get academic-style refs</li>
+                <li>Export formats can pick the right rendering (footnotes for .docx, panel for in-app, none for clipboard)</li>
+                <li>Handles the strongest UX-research finding: visible citations build trust, invisible ones support verification — toggle gets both</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>More to build: needs a rendering layer, an export pipeline, and a settings affordance</li>
+                <li>Risk of decision fatigue if exposed as a per-document choice rather than a smart default</li>
+                <li>Discoverability — users may never find the toggle</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-4" data-option-name="Contested-only">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Contested-only citations with always-on panel</h3>
+          </div>
+          <p class="summary">No citations in the prose by default; the model surfaces citations only for claims it flags as low-confidence, contested, or the user explicitly challenges.</p>
+          <div class="how">
+            <p>Each claim has a confidence score. High-confidence claims render clean; low-confidence ones get a small warning marker. Users can right-click any sentence to ask "source?" and get a hover card. The full source panel is always present.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Maximally clean output, ideal for drafts meant to be sent</li>
+                <li>Frames citations as a verification <em>tool</em> rather than visual proof</li>
+                <li>Aligns with research that "more citations" doesn't equal "more truth"</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Loses the documented trust boost from visible citations</li>
+                <li>Requires reliable per-claim confidence scoring (which is itself unreliable)</li>
+                <li>Users in regulated domains (legal, finance, medical) expect visible provenance everywhere</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 3 — Hybrid (invisible-by-default spans with a density slider).</h4>
+      <p>For a knowledge-work harness whose outputs span emails, briefs, research reports, and meeting summaries, no single citation density is correct — and the research strongly suggests that defaulting to "Perplexity-everywhere" creates citation noise without commensurate trust. The architectural insight from Anthropic's Citations API is the right one: <em>store citations as structured data on spans, decide presentation per artifact</em>. Default to subtle underlined spans inside the harness (Option 2's clean reading experience), but ship two non-negotiable extras: (a) an always-available source panel for users who want to skim provenance, and (b) export rendering rules — clipboard strips to plain prose, Word/PDF exports add footnotes, in-app share preserves spans. This directly solves the "drafts get pasted out" problem that breaks superscript-based designs.</p>
+      <p>The novel "source-provenance lineage on every claim" primitive should be implemented at the <em>data</em> layer (every claim span has a citation list with confidence, source URL, quoted text, retrieval timestamp) and the UI is just one consumer. This also positions the harness for the "contested-only" mode (Option 4) as a <em>user preference</em>, not a separate design — power users in clean-draft mode can opt into "show citations only when I challenge" with the same underlying data model.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://www.shapeof.ai/patterns/citations">AI UX Patterns | Citations | ShapeofAI.com</a>
+      <a href="https://claude.com/blog/introducing-citations-api">Introducing Citations on the Anthropic API</a>
+      <a href="https://simonwillison.net/2025/Jan/24/anthropics-new-citations-api/">Anthropic's new Citations API — Simon Willison</a>
+      <a href="https://ojs.aaai.org/index.php/AAAI/article/view/34550/36705">Citations and Trust in LLM Generated Responses (AAAI 2025)</a>
+      <a href="https://arxiv.org/html/2605.06635v1">Cited but Not Verified: Parsing and Evaluating Source Attribution in LLM Deep Research Agents</a>
+      <a href="https://www.qwairy.co/blog/provider-citation-behavior-q3-2025">Perplexity vs ChatGPT: AI Citation Study Q3 2025</a>
+      <a href="https://www.granola.ai/blog/two-dot-zero">Granola 2.0 — inline citations + jump-to-source</a>
+      <a href="https://docs.glean.com/user-guide/assistant/deep-research">Glean Deep Research — citation-rich reports</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q05.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="q07.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 06 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

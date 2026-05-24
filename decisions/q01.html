@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" data-area="memory" data-question-id="q01">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q01 · What should persistent memory index? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01" class="current">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q01 / 12</span>
+      <span class="chip">Memory · Indexing</span>
+    </div>
+    <h1>What should the persistent memory tier index, <em>and when does it write?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Index everything and the store drowns in noise within days, polluting future recall. Index too little (or only obvious artifacts) and you lose the conversational substrate that justified building cross-session memory in the first place. The wrong choice quietly breaks the value proposition before you notice.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">Production systems disagree sharply — papers say "extract; gate hard"; consumer tools say "ask the user".</h2>
+    <div class="findings">
+      <p>The 2024-2026 literature has converged on a clear taxonomy of memory-write strategies, but production systems disagree sharply on the answer. MemGPT (Packer et al. 2023) treats memory as a hierarchical OS — the agent calls explicit <code>archival_memory_insert</code> / <code>core_memory_append</code> functions, indexing whatever the LLM judges worth promoting from main context to disk. MemoryBank adds an Ebbinghaus-curve decay so the system can forget and reinforce by time-elapsed and significance. Stanford's Generative Agents write <em>every</em> observation but score each with a 1–10 importance number; reflection fires only when accumulated importance crosses a threshold. A-Mem (Feb 2025) goes further — every interaction becomes a "Zettelkasten note" with LLM-generated keywords, tags, contextual description, embedding, <em>and</em> links to related memories. <a href="https://arxiv.org/html/2504.19413v1">Mem0</a> (Apr 2025), now the de-facto production reference, runs single-pass ADD-only extraction after each exchange and is explicit that "for most production applications, a hybrid approach works best: automatic retrieval at request start, agent-driven storage at turn end."</p>
+      <p>Shipping consumer products are notably more conservative than the papers. ChatGPT's memory has two distinct tiers: explicit "saved memories" (written when the model judges likely future utility — name, role, ongoing projects, recurring preferences) and "chat-history references" (no extraction, just retrieval over raw transcripts since April 2025). Claude's Projects / Claude Code memory deliberately rejects vector indexing in favor of a transparent file-based <code>MEMORY.md</code> directory; the shipped product writes synchronously during the session, biographical-and-procedural only, with files the user can edit. Notion AI's "memory" is even more explicit-only: it indexes the pages and databases the user designates plus an instructions page.</p>
+      <p>The strongest practical synthesis comes from Nicolas Bustamante's 2026 survey of Claude Code, Codex, and Hermes: synchronous live writes work for interactive agents with clean turn boundaries; deferred two-phase batch extraction wins for cloud-worker agents. Crucially, both authors and the LangMem docs converge on the same gate: <em>make empty output the default</em> — Codex's Phase-1 prompt explicitly rejects "one-off user queries with no durable insight, generic status updates, temporary facts that should be re-queried." This is the single discipline that keeps the store from drowning in noise.</p>
+      <p>For a knowledge-work harness specifically, three asymmetries matter. First, knowledge work has <em>natural high-value artifacts</em> coding agents lack: a sent email, a finalized draft, a meeting decision, a calendar accept — these are the closest analog to a committed git diff. Second, drafts are already a first-class versioned primitive in your design, so the memory tier doesn't need to re-derive what's "important." Third, provenance lineage on every claim means raw turns must be reachable anyway (for citation), so the persistent vector tier should index <em>interpretations</em>, not transcripts.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">Four viable patterns. They differ on noise tolerance, transparency, and how much LLM cost lives in the hot path.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Ratified-artifacts only">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Ratified-artifacts only, written synchronously</h3>
+          </div>
+          <p class="summary">Only commit user-touched artifacts (drafts saved, emails sent, decisions accepted, meeting summaries approved) to the vector tier, at the moment of ratification.</p>
+          <div class="how">
+            <p>Every turn flows through working memory. When the user accepts a draft, signs off a decision, hits "send," or marks a meeting summary as final, a write-hook serializes the artifact plus its provenance graph into the vector store. No background extraction, no LLM importance scoring, no per-turn writes. Raw transcripts stay in cheap object storage indexed by session ID for citation lookup.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Zero noise — every entry has human-confirmed ground truth</li>
+                <li>Cheap (no per-turn LLM extraction call)</li>
+                <li>Trivially aligns with provenance: artifacts already carry lineage</li>
+                <li>User-controllable by design (forgetting = un-ratify)</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Loses tacit signals (recurring tone, preferred sources, vendor complaints) that never become artifacts</li>
+                <li>Cold start for new users who haven't ratified much yet</li>
+                <li>Misses agent-derived insights and synthesis claims</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-2" data-option-name="Hybrid w/ importance scoring">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Hybrid with importance-scored extraction at yield boundaries</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">A Generative-Agents-style importance score (1–10) runs at every yield boundary; writes only fire above threshold, and ratified artifacts hit a separate high-weight pipeline.</p>
+          <div class="how">
+            <p>At each yield boundary (turn end), a small/cheap model scores any new claims, preferences, or facts on importance and saves only those above threshold <code>T</code> into the vector tier with a <code>derived</code> flag. When the user ratifies an artifact, that artifact + provenance is written separately with a <code>ratified</code> flag and higher retrieval weight. Background consolidator (nightly) re-scores, dedupes, and demotes stale entries via MemoryBank-style decay.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Captures tacit signals and synthesized claims, not just artifacts</li>
+                <li>Two-tier weighting lets retrieval prefer ratified content while still surfacing patterns</li>
+                <li>Aligns with Mem0's empirically-best hybrid (auto retrieve, agent-driven write)</li>
+                <li>Survives messy users who rarely ratify</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Importance scoring is itself unreliable — LLMs score inconsistently</li>
+                <li>Per-yield LLM call adds latency and token cost on every turn</li>
+                <li>Two flags complicate retrieval ranking and eviction</li>
+                <li>Risk of "memory pollution" if threshold drifts</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-3" data-option-name="Explicit save_memory tool">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Explicit <code>save_memory</code> tool, agent-driven, post-yield</h3>
+          </div>
+          <p class="summary">Give the agent a <code>save_memory(content, type, source_refs)</code> tool; the agent decides what to retain — mirroring Claude Code, LangMem hot-path, and MemGPT.</p>
+          <div class="how">
+            <p>No automatic indexing. The agent has explicit tools — <code>save_memory</code>, <code>update_memory</code>, <code>forget_memory</code>, <code>search_memory</code> — that it invokes during reasoning when something seems worth keeping. Typed entries (preference, fact, decision, project-state, contact) enforce schema. User sees writes in the trace and can veto.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Maximum transparency — every write is in the trace, auditable, user-vetoable</li>
+                <li>Matches Claude Code's shipped pattern and LangMem hot-path quickstart</li>
+                <li>No background pipeline needed; trivial to reason about</li>
+                <li>Agent learns what to save from few-shot examples in its prompt</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Quality depends entirely on prompt discipline — agents are notoriously bad at "default to no-op"</li>
+                <li>Adds tokens/latency to every reasoning step that uses the tool</li>
+                <li>Skips signals the agent doesn't think to record</li>
+                <li>Doesn't naturally privilege ratified artifacts</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-4" data-option-name="Two-phase deferred extraction">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Two-phase deferred extraction (Codex-style)</h3>
+          </div>
+          <p class="summary">No writes during the session; an offline pipeline extracts memories from the full transcript + ratified artifacts at session idle (&gt;N minutes) using a small model, then a larger model consolidates.</p>
+          <div class="how">
+            <p>Sessions buffer raw transcripts. After an idle window, Phase 1 (cheap model) scans the transcript with a strict "will a future agent act better because of this?" gate, defaulting to empty output. Phase 2 (larger model) consolidates Phase 1 candidates against existing memory, dedupes, links, and writes to the vector tier. Ratified artifacts skip Phase 1 and go straight to consolidation.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>No in-session latency cost; cheapest hot path</li>
+                <li>Better extraction quality (full transcript context, slower model allowed)</li>
+                <li>Hardest empty-output gate filters noise most effectively</li>
+                <li>Plays well with your proactive-scheduler primitive</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Memory not fresh — won't help within the same session</li>
+                <li>Needs a clean session-end boundary; long sessions blur that</li>
+                <li>Two-phase pipeline is operationally heavier</li>
+                <li>Lag between user action and memory availability complicates user mental model</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 2 — Hybrid, with ratified-artifact pipeline baked in and nightly consolidation behind it.</h4>
+      <p>The knowledge-work context tilts the balance toward a hybrid because your other novel primitives already do half the work. Source-provenance lineage means raw transcripts must be addressable anyway, so the vector tier should index <em>condensed interpretations</em> — exactly what importance-scored extraction produces. Drafts as first-class versioned artifacts give you a free, high-precision write signal that Option 1 alone would over-rely on but that Option 2 elegantly slots in as the "ratified" tier.</p>
+      <p>A pure agent-tool approach (Option 3) is tempting for transparency but every survey from Bustamante to LangMem to Mem0 reports the same failure mode: agents over-save when given the tool, polluting the store within days. Pure deferred extraction (Option 4) loses the within-session adaptation that makes a <em>knowledge</em>-work agent feel intelligent across a single long research session. Concretely: at every yield boundary run a cheap importance scorer with a high threshold (calibrated against an eval set, defaulting to "no-op"); on every ratification event write the artifact + provenance immediately with higher retrieval weight; run nightly consolidation that dedupes, re-links A-Mem-style, and applies MemoryBank decay. Expose a <code>forget_memory</code> tool to the user (not the agent) for control.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://arxiv.org/pdf/2310.08560">MemGPT: Towards LLMs as Operating Systems (arXiv 2310.08560)</a>
+      <a href="https://arxiv.org/html/2502.12110v11">A-MEM: Agentic Memory for LLM Agents (arXiv 2502.12110)</a>
+      <a href="https://arxiv.org/html/2504.19413v1">Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory (arXiv 2504.19413)</a>
+      <a href="https://arxiv.org/abs/2305.10250">MemoryBank: Enhancing LLMs with Long-Term Memory (AAAI 2024)</a>
+      <a href="https://ar5iv.labs.arxiv.org/html/2304.03442">Generative Agents: Interactive Simulacra of Human Behavior (Park et al. 2023)</a>
+      <a href="https://langchain-ai.github.io/langmem/">LangMem documentation — hot path vs background</a>
+      <a href="https://nicolasbustamante.com/blog/agent-memory-engineering">Agent Memory Engineering — Nicolas Bustamante (2026 survey)</a>
+      <a href="https://openai.com/index/memory-and-new-controls-for-chatgpt/">Memory and new controls for ChatGPT — OpenAI</a>
+      <a href="https://docs.anthropic.com/en/docs/claude-code/memory">Claude Code memory — Anthropic docs</a>
+      <a href="https://docs.mem0.ai/core-concepts/memory-operations/add">Mem0 — Add Memory documentation</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="index.html" class="btn">All questions</a>
+      <a href="q02.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 01 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

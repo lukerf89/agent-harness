@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" data-area="perm" data-question-id="q09">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q09 · What scope for high-blast permission grants? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09" class="current">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q09 / 12</span>
+      <span class="chip">Permissions · Scope</span>
+    </div>
+    <h1>What scope for permission grants <em>balances safety and tedium?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Friction in the wrong place trains users to mash "approve" by default, defeating the whole point of the gate. Anthropic Claude Code added "Auto Mode" specifically because users were approving 93% of prompts — fatigue had effectively defeated the prompt as a safety control. The right scope dimensions matter as much as the prompting itself.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">Decades of OS/OAuth iteration converge on multidimensional scope — but expose all axes at once and users grant everything.</h2>
+    <div class="findings">
+      <p>Permission UX on consumer platforms has converged on a small set of temporal scopes after a decade of iteration. iOS started with binary allow/deny in iOS 5, added "While Using" in iOS 8, added "Allow Once" in iOS 13, and added "approximate vs precise" location toggles in iOS 14. The throughline is decomposing one big "always" grant into smaller dimensions the user actually cares about: time window, fidelity, and surface. macOS Sequoia took this further for screen recording, prompting weekly and on every reboot — which generated significant user backlash and was ultimately walked back, illustrating the cost when granularity tips into nagging without payoff.</p>
+      <p>OAuth scope design shows the same maturation curve. Slack explicitly migrated from "umbrella bot scope" to granular <code>object:action:perspective</code> scopes because the umbrella model caused install drop-off. GitHub's fine-grained PATs added a <em>resource</em> dimension on top of permission verbs — a token can be limited to one repo, with read or read/write on specific permission categories. Plaid layered another dimension: account-level scoping selected in the OAuth flow itself. The shared lesson: scopes are multidimensional (verb × resource × principal × time), but if you expose all axes at once, users grant everything to escape the dialog — Plaid's research and broader OAuth literature both emphasize this rubber-stamping failure mode.</p>
+      <p>For agents specifically, the 2025–2026 industry has converged on tiered risk-based gating rather than per-tool prompting. OpenAI Operator/ChatGPT Agent explicitly asks before "actions of consequence" (purchases, sends, financial transactions) but proceeds silently for reads, achieving 99.9% confirmation recall on high-stakes sends per their system card. <a href="https://www.anthropic.com/engineering/claude-code-auto-mode">Anthropic Claude Code added "Auto Mode"</a> in March 2026 specifically because users were approving 93% of permission prompts. Auto Mode replaces regex allowlists with a classifier that reads <em>prose rules</em>. The MindStudio 5-rung ladder (Read → Suggest → Draft → Act-with-confirmation → Autonomous) and four-tier risk model are the most-cited frameworks; both emphasize <em>reversibility</em> and <em>external recipients</em> as the key tier boundaries.</p>
+      <p>The consistent failure mode is "approve fatigue" — when users click through 90%+ of prompts, the prompt is theatre, not a control. The empirical mitigations are: (1) collapse low-risk actions into silent execution with audit log, (2) make the <em>content of the confirmation</em> meaningful (Superhuman's success isn't a modal — it's the 10-second undo plus a full draft preview before send), (3) scope grants along an axis the user already has a mental model for ("this conversation only," "Bob's team only"), and (4) let grants expire — the "Allow Once" iOS option became the most-used location grant precisely because it costs nothing to give.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">Four shapes — the recommended one earns its complexity by inverting the cost curve.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Risk-tiered, silent low-risk">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Risk-tiered with silent low-risk</h3>
+          </div>
+          <p class="summary">Classify every action into 4 tiers (read / reversible-internal / external-recipient / irreversible-financial) and only prompt for tiers 3–4.</p>
+          <div class="how">
+            <p>The harness maintains a per-action-type risk classification configured in policy. Reads and reversible internal artifacts run silently with audit log. External-recipient actions trigger a content-aware confirmation showing the full draft, recipient, and time-of-send. Irreversible actions require typed confirmation. No scope dimensions are exposed to the user.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Mirrors the OpenAI Operator and Anthropic Auto Mode patterns already in production</li>
+                <li>Zero cognitive load until an action genuinely matters</li>
+                <li>Easy to explain ("we ask before anything reaches a real person")</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>One axis (risk tier) collapses recipient, content, and time into a single dimension</li>
+                <li>Tier-3 prompts still arrive at every email send, becoming fatiguing for high-volume users</li>
+                <li>Classification errors are invisible until something goes wrong</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-2" data-option-name="Multidimensional scoped grants">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Multidimensional scoped grants (the "Plaid model")</h3>
+          </div>
+          <p class="summary">Expose a small set of scope dimensions — recipient set, content category, time window, thread — and let the user combine them when granting.</p>
+          <div class="how">
+            <p>When the agent first attempts a high-blast action, show a structured grant dialog: "Allow [send email] to [these people] about [these topics] for [this duration]." Pre-fill with the narrowest sensible scope and surface "broaden" affordances. Grants are stored as policy and matched on subsequent actions; only out-of-scope actions re-prompt. Mirrors Plaid account-picking, GitHub fine-grained PATs, and iOS location-precision-duration.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Captures the dimensions that genuinely matter for knowledge work</li>
+                <li>Each grant amortizes across many future actions, dramatically reducing prompt volume</li>
+                <li>Maps cleanly onto the harness's source-provenance lineage</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Complex grant UI risks the rubber-stamp problem OAuth literature warns about</li>
+                <li>Requires the harness to reliably classify content category (status update vs contract)</li>
+                <li>More upfront design and policy storage complexity</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-3" data-option-name="Draft-as-default + undo send">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Draft-as-default with explicit-send confirmation</h3>
+          </div>
+          <p class="summary">The agent never sends — it always produces a draft artifact; sending is a separate user action with a Superhuman-style 10-second undo.</p>
+          <div class="how">
+            <p>Leverages the harness's "draft as first-class versioned artifact" primitive. The agent autonomously composes, revises, and queues drafts; nothing reaches an external recipient without the user opening the draft and pressing send. For high-volume cases, the user can configure auto-send-after-N-seconds with undo. Scope decisions happen at <em>configuration time</em> per channel, not per action.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Eliminates the per-action prompt entirely; user reviews drafts on their own schedule</li>
+                <li>Aligns naturally with the harness's existing draft primitive</li>
+                <li>Matches the most-loved real-world pattern (Superhuman undo, Gmail undo-send)</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Defeats much of the "proactive scheduler" value — agent can't close loops without user attention</li>
+                <li>Bulk drafts can create their own form of fatigue (inbox of 40 drafts to review)</li>
+                <li>Doesn't handle non-message actions well (calendar invites, payments)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-4" data-option-name="Risk-tiered + in-context scoped grants">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Risk-tiered + scoped grants for repeats (hybrid)</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">Default to risk-tiered prompts (Option 1), but every confirmation dialog includes an inline "also allow this for [recipient/thread/topic] [duration]" affordance that builds up scoped grants over time.</p>
+          <div class="how">
+            <p>First time the agent emails Bob, the user sees a full preview and confirms. The dialog has a one-click "always OK for emails to Bob about this project for the next 30 days" toggle. Subsequent in-scope sends run silently with an unobtrusive notification; out-of-scope sends re-prompt. Mirrors iOS's "Allow Once / While Using / Always" — start narrow, let the user broaden in-context rather than upfront. Grants auto-expire and surface in a "permissions inbox" the user can audit.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Starts with proven risk-tier model; user only pays the scope-grant cost when they want to reduce future friction</li>
+                <li>In-context grants avoid the upfront "approve everything" rubber-stamp failure</li>
+                <li>Time-bounded grants prevent "permission rot" where stale broad grants outlive their justification</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>More implementation complexity than Option 1</li>
+                <li>Risk that the inline "always allow" toggle becomes the new rubber-stamp button</li>
+                <li>Scope evaluation logic needs to be fast and explainable, or users won't trust the silent path</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 4 — Risk-tiered + scoped grants for repeats.</h4>
+      <p>For a knowledge-work harness specifically, the per-action workload is high enough that pure risk-tiered prompting (Option 1) will hit Claude Code's 93%-approval-rate fatigue wall within weeks. Inbox triage, scheduling, and correspondence generate dozens of external-recipient actions per day per user — the very kind of volume that turned macOS Sequoia's weekly screen-recording prompt into a meme. At the same time, exposing a full multidimensional grant dialog upfront (Option 2) violates the most consistent finding in OAuth research: users grant everything to escape complexity. Option 3 cedes too much of the agent's value proposition; the whole point of a proactive scheduler is that the agent closes loops without babysitting drafts.</p>
+      <p>The hybrid approach earns its complexity because it inverts the cost curve: the user pays a meaningful one-time confirmation (full preview, Superhuman-style undo window) and gets the option — but never the obligation — to convert that decision into a scoped grant they can audit later. Critically, grants must be (a) time-bounded by default (24h, 7d, 30d picker — never "forever"), (b) keyed to entities the harness already tracks via provenance lineage (this recipient, this thread, this topic-tag), and (c) visible in a permissions inbox the agent surfaces weekly. Pair this with the "draft as first-class artifact" primitive: even auto-approved sends should briefly stage as drafts with an undo window, so the silent path still has a recovery hatch.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://www.anthropic.com/engineering/claude-code-auto-mode">Claude Code auto mode: a safer way to skip permissions — Anthropic</a>
+      <a href="https://openai.com/index/introducing-chatgpt-agent/">Introducing ChatGPT agent — OpenAI</a>
+      <a href="https://openai.com/index/introducing-operator/">Introducing Operator — OpenAI</a>
+      <a href="https://www.mindstudio.ai/blog/ai-agent-permissions-5-rung-trust-ladder-design">How to Design AI Agent Permissions: The 5-Rung Trust Ladder — MindStudio</a>
+      <a href="https://prefactor.tech/learn/designing-agent-approval-workflows">Designing Approval Workflows for High-Stakes Agent Actions — Prefactor</a>
+      <a href="https://github.blog/security/application-security/introducing-fine-grained-personal-access-tokens-for-github/">Introducing fine-grained personal access tokens for GitHub</a>
+      <a href="https://docs.slack.dev/reference/scopes/">Slack OAuth scopes documentation</a>
+      <a href="https://plaid.com/docs/link/oauth/">Plaid Link OAuth guide</a>
+      <a href="https://help.superhuman.com/hc/en-us/articles/47278253460499-Undo">Undo — Superhuman Help</a>
+      <a href="https://support.apple.com/en-us/102515">About privacy and Location Services in iOS — Apple Support</a>
+      <a href="https://secureprivacy.ai/blog/adaptive-consent-frequency-using-ai-to-combat-consent-fatigue">Adaptive Consent Frequency: Using AI to Combat Consent Fatigue</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q08.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="q10.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 09 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" data-area="drafts" data-question-id="q08">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q08 · How should drafts handle concurrent edits? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08" class="current">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q08 / 12</span>
+      <span class="chip">Drafts · Concurrency</span>
+    </div>
+    <h1>How should the draft state machine handle <em>user edits during agent revision?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Without a model here, the draft state machine becomes "whichever side wrote last wins," which silently destroys work. CRDTs auto-merge cleanly at the syntactic level but produce semantic nonsense when the user's sentence interleaves into an AI-generated paragraph. The shipping consensus is clear — and counter-intuitive.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">Every shipping AI editor reached the same conclusion: AI doesn't directly mutate user-authored text.</h2>
+    <div class="findings">
+      <p>The shipping consensus across AI editing tools in 2025-2026 has converged on a clear pattern: <em>AI does not directly mutate the user's authored text in-place during generation</em>. Instead, AI output is materialized as a reviewable artifact — ghost text, suggestion overlay, diff view, or branched candidate — that the user explicitly accepts, rejects, or partially merges. This is true across radically different domains: GitHub Copilot dismisses ghost-text inline suggestions the moment the user keeps typing; Notion's "Suggested edits" mode wraps changes in underlined/strikethrough markup until accepted; Cursor's Apply model runs a specialized model whose entire job is to translate a frontier model's rough sketch into a clean diff; Tiptap's AI Suggestion and AI Changes extensions render edits as a diff view; Google Docs' Gemini "Help me write" surfaces tone-changes as bulk Accept all / Reject all; Linear's Triage Intelligence proposes duplicates and labels with keyboard-shortcut accept/decline.</p>
+      <p>CRDTs are widely deployed for the <em>human-human</em> layer (Notion, Google Docs, Tiptap collaboration, Yjs ecosystem) and Yjs in particular is the de-facto winner for performance and ecosystem. However, the Ink &amp; Switch / Yjs community itself acknowledges a hard limit: "Plain text CRDTs only preserve low-level syntactic intent" — a CRDT will happily interleave a user-typed sentence into the middle of an AI-generated paragraph, producing syntactically valid but semantically garbled prose. <a href="https://electric.ax/blog/2026/04/08/ai-agents-as-crdt-peers-with-yjs">Electric SQL's April 2026 architecture</a> for "AI agents as Yjs peers" only works because the agent uses constrained, human-like tool calls scoped by relative anchors, not free-form text replacement.</p>
+      <p><a href="https://cursor.com/docs/configuration/worktrees">Cursor 2.0</a> (Oct 2025) shipped what is essentially the industrial reference design for the harder case (large agent-generated changes): <em>isolated git worktrees per agent</em>, up to 8 parallel agents, aggregated diff view, per-agent undo, and an Apply step that merges back into the working branch — or discards the entire worktree if rejected. Lovable's 2.0 GitHub two-way sync follows the same pattern. Granola's design is the canonical knowledge-work analog: user notes stay black, AI enhancements render in grey with timestamp-linked provenance, the user's structural skeleton is preserved across re-enhancement, and "raw" vs "enhanced" are explicitly separate views.</p>
+      <p>Locking is almost universally avoided. The arXiv 2025 paper on collaborative editing with users and AI agents found optimistic concurrency wins over pessimistic locking for fluidity; the only durable use of locking is field-level or display-pagination locking (to prevent agent edits from yanking the user's scroll position) — never document-wide blocking.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">Each shipped product has all three modes hiding inside it. The recommendation is to make that explicit.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Yjs CRDT w/ constrained peer">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Yjs CRDT with agent as constrained peer</h3>
+          </div>
+          <p class="summary">Run the agent as a server-side Yjs peer that issues human-like, anchor-scoped operations rather than free-form rewrites.</p>
+          <div class="how">
+            <p>The draft is a Yjs document. Both the user's editor and the agent connect as peers. The agent never replaces a whole paragraph blindly; it issues bounded operations (insert at relative anchor, replace selection range identified by relative position). Yjs auto-merges concurrent edits via Peritext/YATA semantics. The agent's presence is shown via awareness state.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Zero blocking — user keeps typing while agent works</li>
+                <li>Reuses battle-tested Yjs ecosystem (fastest CRDT, mature editor bindings)</li>
+                <li>Durable across disconnect (agent runs server-side)</li>
+                <li>Plays well with the harness's multi-session model</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>CRDTs preserve syntactic, not semantic, intent — interleaved edits can produce nonsense</li>
+                <li>Requires careful agent prompt-engineering to use constrained tool calls</li>
+                <li>Hard to attach provenance to specific spans</li>
+                <li>Conflict invisibility — silent semantic clobbering is worse than a visible conflict</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-2" data-option-name="Agent-as-suggestion (tracked changes)">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Agent-as-suggestion (tracked changes / diff view)</h3>
+          </div>
+          <p class="summary">Agent never directly mutates the canonical draft — every agent output is a proposed delta the user accepts, rejects, or partially merges.</p>
+          <div class="how">
+            <p>Model the draft like Notion's "Suggested edits" or Tiptap's AI Suggestion: AI revisions are persisted as a suggestion layer over the base document. The user keeps typing freely on the base; suggestions render as overlay (inserts in colored underline, deletions struck-through). The user accepts per-suggestion or accept-all. The user's concurrent typing never conflicts because they edit different layers.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Matches the shipping consensus across Notion, Tiptap, Google Docs, Copilot, Cursor</li>
+                <li>Provenance is trivially attached at the suggestion level</li>
+                <li>Aligns with the harness's "draft as first-class versioned artifact" — every accept is a versioned event</li>
+                <li>User retains full agency; no semantic surprises</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Cognitively heavier for large rewrites — accepting 200 suggestions is annoying</li>
+                <li>Requires building suggestion-layer infra (or adopting Tiptap AI Suggestion / Liveblocks)</li>
+                <li>Stale suggestions when user edits the underlying span — needs invalidation</li>
+                <li>Less natural for "agent autonomously drafting from scratch"</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-3" data-option-name="Fork-and-merge worktree">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Fork-and-merge (worktree model)</h3>
+          </div>
+          <p class="summary">Agent revisions happen on a branch; the user merges the candidate back, manually or with model-assisted three-way merge.</p>
+          <div class="how">
+            <p>Mirror Cursor 2.0's worktree model. When the agent revises, it forks the current draft into a candidate version. The user keeps editing the main draft live. When the agent finishes, the user sees an aggregated diff (base vs candidate vs current-main). They Apply, partial-apply per section, or discard. Conflicts trigger a model-assisted three-way merge presented as a resolution UI.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Perfect for large agent revisions that touch most of the doc</li>
+                <li>Clean isolation — user never sees mid-generation flicker</li>
+                <li>Natural fit for proactive scheduler: agent runs revisions in background</li>
+                <li>Each branch is a first-class versioned artifact with provenance</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Overkill for small inline tweaks ("fix grammar in this sentence")</li>
+                <li>Merge UI is the hardest piece to design well — Cursor took years</li>
+                <li>Three-way merge of prose is genuinely hard; LLM-assisted resolution can hallucinate</li>
+                <li>More latency from user POV — no real-time co-editing feel</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-4" data-option-name="Hybrid tiered (inline/suggestion/branch)">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Hybrid tiered model (inline / suggestion / branch)</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">Pick the merge mode based on edit scope — inline ghost-text for small completions, suggestion-layer for medium revisions, branch-and-merge for large rewrites.</p>
+          <div class="how">
+            <p>The agent classifies (or the harness routes) its intended edit into one of three modes. Tier 1 — token-to-paragraph inline completion uses Copilot-style ghost text dismissed on keystroke. Tier 2 — section-level revision ("improve this paragraph", "make more formal") uses Notion/Tiptap suggestion layer with per-span accept. Tier 3 — whole-document or multi-section regeneration uses fork-and-merge with diff review. Underneath, the document is a Yjs CRDT for the human-collaboration layer (multi-user, multi-device).</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Matches the empirically-shipping pattern — nobody uses one mode for everything</li>
+                <li>User cognitive load proportional to change size</li>
+                <li>Each tier produces appropriate provenance granularity</li>
+                <li>Composes cleanly with all four novel components</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Most engineering surface — three UX modes to build and maintain</li>
+                <li>Tier classification can be wrong, leading to mismatched friction</li>
+                <li>More state machine complexity in the harness</li>
+                <li>Harder to explain to users initially</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 4 — Hybrid tiered model.</h4>
+      <p>Every shipping product converges here in practice, even if they don't articulate it that way: Cursor has Tab (ghost text) + Composer inline edits + Composer worktrees; Notion has slash-AI insert + Suggested edits + AI blocks; Google Docs has smart compose + Help-me-write suggestions + side-panel rewrites. The reason is straightforward — semantic merge difficulty scales with edit size, and forcing every edit through one mechanism either over-burdens small edits (every comma fix is a PR) or under-protects large ones (a 500-word rewrite silently CRDT-merges into nonsense). For a knowledge-work harness where the agent is genuinely autonomous and may revise drafts proactively while the user is offline, the worktree-style Tier 3 is non-negotiable; for inbox triage and quick correspondence, Tier 1/2 inline UX is what makes the tool feel responsive.</p>
+      <p>Build it concretely as: Yjs as the substrate for the human-collaboration and presence layer (it's the obvious winner — fastest, biggest ecosystem); Tiptap AI Suggestion / Liveblocks-style suggestion overlay for Tier 2; a lightweight branch model (does not need real git — just versioned document snapshots with parent pointers, plus an LLM-assisted three-way merge resolver) for Tier 3. Crucially, never block the user's editor during agent generation — every tool that tried locking lost. Pair this with the harness's provenance lineage by attaching source citations at the suggestion or branch level (not at CRDT op level — that granularity is wrong), and the draft-as-versioned-artifact primitive maps directly onto Tier 3 branches plus a journal of accepted Tier 2 suggestions.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://electric.ax/blog/2026/04/08/ai-agents-as-crdt-peers-with-yjs">AI agents as CRDT peers — building collaborative AI with Yjs (Electric SQL, April 2026)</a>
+      <a href="https://cursor.com/docs/configuration/worktrees">Cursor 2.0 Worktrees documentation</a>
+      <a href="https://www.digitalapplied.com/blog/cursor-2-0-agent-first-architecture-guide">Cursor 2.0 Agent-First Architecture Guide</a>
+      <a href="https://www.notion.com/help/suggested-edits">Notion Suggested Edits help</a>
+      <a href="https://tiptap.dev/docs/content-ai/capabilities/suggestion/features/diff-view">Tiptap AI Suggestion — Diff view</a>
+      <a href="https://docs.granola.ai/help-center/taking-notes/ai-enhanced-notes">Granola AI-enhanced notes docs</a>
+      <a href="https://code.visualstudio.com/docs/copilot/ai-powered-suggestions">GitHub Copilot inline suggestions (VS Code docs)</a>
+      <a href="https://www.inkandswitch.com/peritext/static/cscw-publication.pdf">Peritext: A CRDT for Collaborative Rich Text Editing (Ink &amp; Switch)</a>
+      <a href="https://arxiv.org/pdf/2509.11826">Collaborative Document Editing with Multiple Users and AI Agents (arXiv 2509.11826)</a>
+      <a href="https://velt.dev/blog/best-crdt-libraries-real-time-data-sync">Best CRDT Libraries 2025 (Velt)</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q07.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="q09.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 08 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

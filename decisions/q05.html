@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" data-area="sched" data-question-id="q05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q05 · How do watchers know they already acted? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05" class="current">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q05 / 12</span>
+      <span class="chip">Scheduler · Idempotency</span>
+    </div>
+    <h1>How does a watcher know it <em>already acted on this signal?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Re-alerting trains users to ignore the agent. Missing genuine new signals defeats the watcher's purpose. Real signals shift slightly each poll — a Linear comment with a typo-fix, a customer reopening a closed ticket — so a simple hash key misses what matters and a too-loose check fires twice.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">Webhooks dedupe by opaque key. Polling triggers fingerprint version. Agent research says hybrid wins.</h2>
+    <div class="findings">
+      <p>Workflow systems across the board converge on a remarkably uniform pattern: <em>the producer-side opaque idempotency key as the primary dedup mechanism</em>. Stripe assigns each event a unique <code>evt_...</code> ID that consumers store with a unique constraint; GitHub stamps every webhook with <code>X-GitHub-Delivery</code>; Inngest uses a sender-provided event <code>id</code> with a 24-hour TTL; Trigger.dev exposes <code>idempotencyKeys.create()</code> with a configurable TTL defaulting to 30 days; Restate ties calls to a <code>WithIdempotencyKey</code> option. The shared principle is that the source emits a stable identifier and the sink maintains a deduplication ledger keyed on it. <a href="https://hookdeck.com/docs/guides/deduplication-guide">Hookdeck</a> explicitly warns that "deduplication doesn't replace idempotency in your application logic" — it's a load-reduction tool, not a correctness guarantee.</p>
+      <p>Polling triggers — closer to the knowledge-work watcher case — work differently. <a href="https://docs.zapier.com/platform/build/deduplication">Zapier</a> requires the API to return items in reverse-chronological order with a unique <code>id</code> field. The crucial trick for <em>updated</em> items (e.g., a Linear issue gets a new comment): the integration "preserves the original <code>id</code> value before setting <code>id</code> to a new combined value that is unique for every update" — typically <code>originalId + updatedAt</code>. This means Zapier forces the source to fingerprint the version. n8n's Remove Duplicates node provides field-level "All Fields" / "All Fields Except" comparison with a default 10,000-item history per node — essentially content-hash with explicit field selection.</p>
+      <p>Temporal takes a different angle: signal deduplication is <em>application-level</em>, because the workflow runtime only auto-dedupes retried client RPCs via request IDs. The recommended pattern is "treat signals like events in a distributed system: dedupe them" using a history set in workflow state and a custom idempotency key in the signal payload. This shows the pattern most relevant to agent watchers: <em>the dedup ledger lives inside durable workflow state</em>, not in a separate cache, and the key is constructed from semantically meaningful inputs.</p>
+      <p>Recent (2025–2026) LLM-agent research on cycle/loop detection — including <a href="https://arxiv.org/pdf/2511.10650">Unsupervised Cycle Detection in Agentic Applications</a> — explicitly addresses the "have I seen this state" question. The most successful approach is <em>hybrid</em>: cheap structural fingerprinting of action/tool-call sequences first (F1 0.08 alone), augmented by semantic-similarity analysis over embeddings (F1 0.28 alone), with the combination reaching F1 0.72. The structural layer catches exact repetitions cheaply; the semantic layer catches functionally-equivalent revisits with surface variation. Semantic-cache literature converges on cosine-similarity thresholds around 0.80–0.90.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">From cheap and brittle to expensive and audit-perfect.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Source-fingerprint composite key">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Source-fingerprint composite key (Zapier model)</h3>
+          </div>
+          <p class="summary">Build a deterministic composite key <code>(signal_type, entity_id, version_token)</code> per signal and store it in a bounded ledger keyed by <code>(watcher_id, key)</code>.</p>
+          <div class="how">
+            <p>For each watched source, define an extractor that produces a stable entity ID (Linear issue ID, Gmail thread ID, ticket ID) plus a <code>version_token</code> derived from the source's own change marker — <code>updatedAt</code>, <code>last_comment_id</code>, ETag, revision number. The watcher computes <code>hash(entity_id || version_token || action_intent)</code> and consults a per-watcher LRU/TTL ledger before firing.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Cheap, O(1) lookup; no embeddings or LLM calls per poll</li>
+                <li>Matches how every production webhook/poller works — well-understood failure modes</li>
+                <li>Naturally handles "reopened ticket" by including state in the version token</li>
+                <li>Forces the integration author to think about what "materially new" means</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Requires per-source adapter code (one extractor per Linear/Gmail/HubSpot)</li>
+                <li>Pure-string version tokens miss "trivial" updates that shouldn't trigger action</li>
+                <li>Storage grows with entity count; needs explicit eviction policy</li>
+                <li>No notion of "slightly different signal but same situation"</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-2" data-option-name="Entity-state snapshot diffing">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Entity-state snapshot diffing</h3>
+          </div>
+          <p class="summary">Persist the last-acted-on snapshot per entity and on each poll compare structured fields against it; act only when designated fields change.</p>
+          <div class="how">
+            <p>When the watcher acts on entity X, it stores a snapshot <code>{status, assignee, last_comment_id, due_date, sentiment_tag}</code>. On next poll, the new payload is normalized into the same shape and diffed. The watcher fires only if a <em>triggering</em> field changed (per-watcher rules: "act when status flips to closed", "act when a new external comment arrives"). This is essentially CDC for external APIs.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Most expressive — you can encode "act if Y changed but not Z"</li>
+                <li>Naturally explains decisions ("I acted because status went open→closed at 14:02")</li>
+                <li>The snapshot doubles as provenance lineage</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Heavy: requires a normalized schema per signal type + storage of full snapshots</li>
+                <li>Triggering rules can be brittle as upstream APIs evolve fields</li>
+                <li>Schema drift breaks dedup silently</li>
+                <li>Doesn't handle free-text content changes without a sub-strategy</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-3" data-option-name="Hybrid structural + semantic">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Hybrid structural + semantic layered dedup</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">Two-tier check — fast composite-key dedup first, then embedding-based "is this materially new" check for cases the structural layer is uncertain about.</p>
+          <div class="how">
+            <p>Layer 1 is Option 1's composite key — if seen, drop. Layer 2 runs when the key is unseen <em>but</em> the entity has been acted on recently: embed the relevant new content and compare cosine similarity against embeddings of prior signals for the same entity. Below similarity ~0.85, treat as materially new; above, suppress. Optional Layer 3 LLM judge for high-stakes ambiguous cases. Mirrors the arxiv hybrid cycle-detection result.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Catches "two comments saying the same thing in different words" that hash misses</li>
+                <li>Cheap path stays fast; expensive path only fires when needed</li>
+                <li>Aligns with the harness's existing vector memory primitive — reuse infrastructure</li>
+                <li>Tunable per-source thresholds; degrades gracefully</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>More moving parts; harder to debug a suppressed signal</li>
+                <li>Threshold tuning is per-source and drifts over time</li>
+                <li>Embedding costs and latency on every uncertain poll</li>
+                <li>Semantic similarity ≠ semantic equivalence — false positives can silently drop new work</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-4" data-option-name="Event-sourced log + cursors">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Event-sourced log with versioned watcher cursors</h3>
+          </div>
+          <p class="summary">Treat every fetched payload as an immutable event, append to a per-watcher log, and let each action be a deterministic projection over the log with a checkpointed cursor.</p>
+          <div class="how">
+            <p>The poller writes every raw response into an append-only event store keyed by <code>(watcher_id, sequence_number)</code>. The agent action loop replays from a cursor; actions are recorded as events with the input event sequence as their idempotency key. Snapshots collapse history periodically. The Temporal/event-sourcing pattern adapted for external polling.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Full audit trail for free — directly supports provenance-lineage</li>
+                <li>Replayable: re-run the agent against historical signals safely</li>
+                <li>Strongest correctness guarantees — exactly-once becomes provable</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Highest infrastructure cost (event store, snapshotting, schema versioning)</li>
+                <li>Overkill for low-volume watchers (a personal inbox triage agent)</li>
+                <li>Requires action handlers to be pure-deterministic projections (constrains LLM use)</li>
+                <li>Significant operational complexity</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 3 — Hybrid structural + semantic layered dedup.</h4>
+      <p>For a knowledge-work agent harness, pure source-fingerprinting (Option 1) is necessary but insufficient: real knowledge-work signals routinely differ syntactically while being substantively equivalent ("Any update?" / "Just checking in!" / "Bumping this"), and any production agent that pings a customer twice for the same nudge will burn user trust within a week. Pure embedding-based dedup (the temptation when you already have a vector memory layer) is too lossy on its own — semantic similarity routinely overrates near-duplicate boilerplate as "the same" while missing genuinely new information buried in a long thread. The 2025 cycle-detection research validates that the <em>combination</em> of cheap structural fingerprinting and selective semantic comparison materially outperforms either alone, and the harness already has the vector memory primitive needed for layer 2.</p>
+      <p>Concretely: implement Option 1 as the always-on first layer — a <code>dedup_ledger</code> table keyed on <code>(watcher_id, entity_id, version_token, action_intent_hash)</code> with a configurable TTL per watcher (24h–30d). When Layer 1 says "unseen but same entity acted on recently," invoke Layer 2: embed the new content and check cosine similarity against the prior-action embedding for that entity; suppress above 0.88, escalate to a cheap LLM judge between 0.75–0.88, fire below. Wire every action through a downstream idempotency key so retries are safe regardless. The dedup ledger itself becomes part of the provenance lineage the harness already wants to maintain. Defer Option 4's full event-sourced log to high-stakes watchers (financial, legal).</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://docs.zapier.com/platform/build/deduplication">How deduplication works in Zapier</a>
+      <a href="https://www.inngest.com/docs/guides/handling-idempotency">Inngest — Handling Idempotency</a>
+      <a href="https://trigger.dev/docs/idempotency">Trigger.dev — Idempotency</a>
+      <a href="https://temporal.io/blog/idempotency-and-durable-execution">Temporal — What is idempotency</a>
+      <a href="https://docs.stripe.com/webhooks">Stripe — Receive events in your webhook endpoint</a>
+      <a href="https://hookdeck.com/docs/guides/deduplication-guide">Hookdeck — Deduplication Implementation Guide</a>
+      <a href="https://docs.github.com/en/webhooks/using-webhooks/handling-webhook-deliveries">GitHub — Handling webhook deliveries</a>
+      <a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.removeduplicates/">n8n — Remove Duplicates node</a>
+      <a href="https://arxiv.org/pdf/2511.10650">Unsupervised Cycle Detection in Agentic Applications (arxiv 2511.10650)</a>
+      <a href="https://www.getmaxim.ai/articles/semantic-caching-for-llms-cut-cost-and-latency-at-scale/">Semantic Caching for LLMs — thresholds &amp; practice</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q04.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="q06.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 05 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

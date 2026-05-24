@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" data-area="memory">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decisions — Knowledge-Work Agent Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body class="is-index">
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand">Knowledge-Work Harness <em>·</em> Decisions</div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero index-hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">12 decisions</span>
+      <span class="chip">Architecture sketch · gap-fillers</span>
+    </div>
+    <h1>Twelve open architecture questions. <em>Pick a path through each.</em></h1>
+    <p class="lede">
+      Each of the four novel components in the <a href="../ideal-architecture.html" class="link">architecture sketch</a> left load-bearing decisions unresolved. A research agent investigated each one against current industry practice (Mem.ai, Notion AI, Granola, Glean, Cursor, Devin, Manus, Perplexity) and 2024–2026 academic literature, returning <strong>2–4 viable options</strong> with trade-offs and an opinionated pick. Click any question to read the findings and lock in your decision — selections persist locally in your browser.
+    </p>
+
+    <div class="progress-strip">
+      <span class="progress-label">Decisions made</span>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <span class="progress-count">0 / 12</span>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>All twelve questions</div>
+    <h2 class="section-title">Click any card to read its research and pick an option.</h2>
+
+    <div class="index-grid">
+
+      <a class="index-card" href="q01.html" data-qid="q01">
+        <div class="ic-head">
+          <span class="ic-qnum">Q01 / 12</span>
+          <span class="ic-chip" data-area="memory">Memory · Indexing</span>
+        </div>
+        <h3>What should persistent memory index, and when?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Hybrid with importance-scored extraction at yield boundaries</div>
+      </a>
+
+      <a class="index-card" href="q02.html" data-qid="q02">
+        <div class="ic-head">
+          <span class="ic-qnum">Q02 / 12</span>
+          <span class="ic-chip" data-area="memory">Memory · Eviction</span>
+        </div>
+        <h3>How should memory be evicted, downweighted, or archived?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> MemGPT-style tiered demotion with periodic compaction</div>
+      </a>
+
+      <a class="index-card" href="q03.html" data-qid="q03">
+        <div class="ic-head">
+          <span class="ic-qnum">Q03 / 12</span>
+          <span class="ic-chip" data-area="memory">Memory · Trust</span>
+        </div>
+        <h3>How should the agent calibrate source trust?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Layered hybrid (typed prior + author graph + corroboration + bounded learned override)</div>
+      </a>
+
+      <a class="index-card" href="q04.html" data-qid="q04">
+        <div class="ic-head">
+          <span class="ic-qnum">Q04 / 12</span>
+          <span class="ic-chip" data-area="sched">Scheduler · Budget</span>
+        </div>
+        <h3>What budget primitives for proactive jobs?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Multi-dimensional execution budget + graceful degradation</div>
+      </a>
+
+      <a class="index-card" href="q05.html" data-qid="q05">
+        <div class="ic-head">
+          <span class="ic-qnum">Q05 / 12</span>
+          <span class="ic-chip" data-area="sched">Scheduler · Idempotency</span>
+        </div>
+        <h3>How does a watcher know it already acted on this signal?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Hybrid structural + semantic layered dedup</div>
+      </a>
+
+      <a class="index-card" href="q06.html" data-qid="q06">
+        <div class="ic-head">
+          <span class="ic-qnum">Q06 / 12</span>
+          <span class="ic-chip" data-area="prov">Provenance · UI</span>
+        </div>
+        <h3>How should citations be surfaced in agent output?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Invisible-by-default spans with togglable density slider</div>
+      </a>
+
+      <a class="index-card" href="q07.html" data-qid="q07">
+        <div class="ic-head">
+          <span class="ic-qnum">Q07 / 12</span>
+          <span class="ic-chip" data-area="prov">Provenance · Granularity</span>
+        </div>
+        <h3>At what granularity should source lineage be tracked?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Tiered provenance memory (TierMem-style)</div>
+      </a>
+
+      <a class="index-card" href="q08.html" data-qid="q08">
+        <div class="ic-head">
+          <span class="ic-qnum">Q08 / 12</span>
+          <span class="ic-chip" data-area="drafts">Drafts · Concurrency</span>
+        </div>
+        <h3>How should drafts handle concurrent user + agent edits?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Hybrid tiered model (inline / suggestion / branch)</div>
+      </a>
+
+      <a class="index-card" href="q09.html" data-qid="q09">
+        <div class="ic-head">
+          <span class="ic-qnum">Q09 / 12</span>
+          <span class="ic-chip" data-area="perm">Permissions · Scope</span>
+        </div>
+        <h3>What scope for high-blast-radius permission grants?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Risk-tiered + scoped grants for repeats (hybrid)</div>
+      </a>
+
+      <a class="index-card" href="q10.html" data-qid="q10">
+        <div class="ic-head">
+          <span class="ic-qnum">Q10 / 12</span>
+          <span class="ic-chip" data-area="memory">Memory · Multi-tenant</span>
+        </div>
+        <h3>Single-user, team-shared, or multi-tenant from day zero?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Federated personal memory with explicit shared artifacts</div>
+      </a>
+
+      <a class="index-card" href="q11.html" data-qid="q11">
+        <div class="ic-head">
+          <span class="ic-qnum">Q11 / 12</span>
+          <span class="ic-chip" data-area="horizon">Long-horizon · Decomposition</span>
+        </div>
+        <h3>How should the agent decompose multi-day goals?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Persistent Goal Object with Living Plan</div>
+      </a>
+
+      <a class="index-card" href="q12.html" data-qid="q12">
+        <div class="ic-head">
+          <span class="ic-qnum">Q12 / 12</span>
+          <span class="ic-chip" data-area="loop">Loop · Observability</span>
+        </div>
+        <h3>What progress UX for long-running deep-research tasks?</h3>
+        <div class="ic-status">Undecided</div>
+        <div class="ic-rec"><strong>Recommended:</strong> Interim-findings cards (artifacts-first)</div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>How to use</div>
+    <h2 class="section-title">A worked decision record, not a quiz.</h2>
+    <div class="findings">
+      <p>Each page is structured as an Architecture Decision Record: <strong>context</strong> (why it matters), <strong>research findings</strong> (3–4 paragraphs synthesizing the current state of the art), <strong>options</strong> (2–4 viable patterns with pros/cons), and a single <strong>recommendation</strong> with reasoning. Click any option card to lock in your choice; the selection persists in <code>localStorage</code> and updates the status of that question across all pages. Your decisions are local to this browser — there is no server, no tracking, no account.</p>
+      <p>The recommendations are deliberate but not authoritative. The agents synthesizing each page were briefed with the harness's four novel primitives (layered memory, proactive scheduler, source-provenance lineage, draft-as-versioned-artifact) and asked to pick options that compound with those primitives — so a recommendation is "this option fits the rest of the architecture best," not "this is objectively correct." If your context differs (you're building for a regulated industry, or you're not actually committed to all four primitives), the second-place options often become more attractive. The cards make the trade-offs explicit so you can override the pick with eyes open.</p>
+      <p>Use this directory as a working document. Take a pass, lock in decisions you're confident about, leave the others open. Revisit when a constraint changes — your selections persist until you clear them.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="container">
+    <div>12 decisions · synthesized from web research by parallel agents · 2026-05-23.</div>
+    <div class="links">
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../knowledge-work-solutions.html">Open-source gap-fillers</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+      <a href="../README.md">README</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

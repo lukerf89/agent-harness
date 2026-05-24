@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" data-area="memory" data-question-id="q02">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q02 · How should memory be evicted? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02" class="current">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q02 / 12</span>
+      <span class="chip">Memory · Eviction</span>
+    </div>
+    <h1>How should memory be evicted, downweighted, <em>or archived</em> from a long-lived store?</h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Forgetting wrongly is worse than not remembering at all — a confidently-recalled stale fact is dangerous in a way a missing fact isn't. But vector stores grow, and an index that's never pruned drifts into a swamp of contradictions and noise that degrades retrieval quality on every query.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">The field has moved away from hard delete. Contradictions live alongside each other; retrieval decides.</h2>
+    <div class="findings">
+      <p>The 2024-2026 literature has converged on a clear consensus: production-grade agent memory must "learn to forget" or it accumulates contradictions, hallucinated context, and retrieval noise. <a href="https://arxiv.org/abs/2305.10250">MemoryBank</a> (Zhong et al., AAAI 2024) was the canonical early move — it applied an exponential Ebbinghaus-curve decay to each memory's "intensity" score, with reinforcement when the entry is accessed, summarized, or rehearsed. This established three signals every newer system reuses: time decay, access-recency (LRU/LFU), and LLM-judged semantic importance. <a href="https://arxiv.org/abs/2502.12110">A-Mem</a> (Xu et al., 2025) extended this by making memories Zettelkasten-style notes that are continuously linked, re-tagged, and rewritten when new entries arrive — eviction is implicit because entries get absorbed into or superseded by their neighbours.</p>
+      <p>The contradiction problem is now the dominant theme. Mem0's most recent algorithm explicitly retreated from aggressive UPDATE/DELETE because "the more you update, revise, and compress, the more you risk distorting what actually happened." Its 2026 release uses ADD-only extraction: contradictions become parallel timestamped facts and retrieval logic decides which is currently valid. Zep/Graphiti goes further with a temporal knowledge graph where every edge has <code>valid_from</code>/<code>valid_to</code> and "invalidation" is a soft event (the fact remains, audit-visible). The <a href="https://arxiv.org/abs/2605.06527">STALE benchmark</a> (2026) showed that even top models fail at "implicit conflict" — recognising that a new observation invalidates a stored belief without an explicit negation — which argues against trusting LLM-judged hard deletes for anything load-bearing.</p>
+      <p>MemGPT/Letta provides the architectural pattern that most production systems now copy: a small core memory (always in context), a recall memory (mid-tier searchable), and an archival memory (cold, searchable on demand). Movement between tiers is the eviction mechanism — "forgotten" data is rarely deleted, just demoted to a tier that's not auto-injected. ChatGPT's consumer UX shows the user-facing side: explicit memories are individually deletable from a settings panel and can be removed conversationally, with OpenAI retaining a 30-day shadow log of deleted memories for safety. Notion's enterprise approach is purely TTL-based: page deletion triggers embedding deletion within 60 days, with a 30-day soft-delete restore window.</p>
+      <p>For audit trails specifically, the database community's wisdom transfers cleanly: soft delete with tombstone timestamps is the right default for anything a user might reference, regulator might audit, or agent might need to re-justify a past claim with. Hard delete is reserved for explicit user retraction (GDPR-style) and for genuinely ephemeral entries. The re-relevance problem — stale facts becoming relevant again — is best handled by not deleting at all but by demoting (Zep) or downweighting via decay multipliers (Milvus Decay Ranker, LangChain's <code>TimeWeightedVectorStoreRetriever</code>).</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">Three viable architectures, from cheapest math to fullest audit.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Pure decay-curve downweight">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Pure decay-curve downweight (MemoryBank style)</h3>
+          </div>
+          <p class="summary">Every memory has an "intensity" score that decays exponentially with time and gets reinforced on access; retrieval multiplies similarity by intensity — nothing deleted, but stale entries sink below the threshold.</p>
+          <div class="how">
+            <p>Each entry stores <code>created_at</code>, <code>last_accessed_at</code>, and <code>access_count</code>. A scheduled job calculates <code>intensity = exp(-Δt/τ) × (1 + log(access_count))</code> where <code>τ</code> is per-entry-type. The retrieval ranker is <code>cosine_sim × intensity</code>. Entries below an intensity floor get demoted to a cold tier but are not hard-deleted. Contradiction triggers a downweight of the older entry, not deletion.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Perfect audit trail — nothing silently lost</li>
+                <li>Re-relevance is automatic: stale topics resurface via semantic similarity</li>
+                <li>Mathematically simple, no LLM in the eviction loop, low latency</li>
+                <li>Aligns with MemoryBank/A-Mem research lineage</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Index keeps growing forever; storage and ANN cost climb monotonically</li>
+                <li>Doesn't handle hard contradictions cleanly — both facts surface with similar scores</li>
+                <li>No GDPR-style "really gone" guarantee unless layered with explicit retraction</li>
+                <li>Tuning per-entry <code>τ</code> requires heuristics or calibration</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-2" data-option-name="Tiered demotion w/ compaction">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>MemGPT-style tiered demotion with periodic compaction</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">Three tiers (core, recall, archive); a background consolidator moves entries between tiers, marks contradictions as "superseded," and compacts the archive into clusters with a frozen audit blob.</p>
+          <div class="how">
+            <p>New facts land in <code>recall</code>. A nightly job runs three passes: (a) demote unused recall entries to <code>archive</code> after N days without access; (b) detect contradictions via LLM judge over high-similarity pairs and mark older sides "superseded by X" without deleting; (c) compact archive clusters with &gt;5 similar entries into one merged summary, storing originals in a <code>provenance_blob</code> column that's not vector-indexed but is fully audit-queryable. User explicit retraction is a hard delete from the index but leaves a tombstone row in the audit log.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Bounded index size — archive compaction prevents unbounded growth</li>
+                <li>Clear architectural mapping (core / recall / archive)</li>
+                <li>Provenance lineage and audit trail preserved in non-indexed cold storage</li>
+                <li>Contradictions handled with explicit "superseded" link, not silent overwrite</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Consolidation is expensive (LLM calls per cluster); needs careful budget caps</li>
+                <li>Compaction can distort original phrasing — the risk Mem0 retreated from</li>
+                <li>Tier-promotion logic is fiddly; re-relevant archive entries need an "uplift" path</li>
+                <li>More moving parts to test and debug</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-3" data-option-name="Bitemporal append-only graph">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Append-only temporal graph (Zep/Graphiti style)</h3>
+          </div>
+          <p class="summary">Memory is a bitemporal knowledge graph where every fact has <code>valid_from</code>/<code>valid_to</code> (world time) and <code>recorded_at</code>/<code>invalidated_at</code> (system time); nothing is ever deleted, but queries default to "valid as of now."</p>
+          <div class="how">
+            <p>Each new observation creates an edge with <code>valid_from=now</code>. When the LLM detects a contradicting observation, it doesn't delete the old edge — it sets <code>valid_to=now</code> on the previous edge and adds a new one. Retrieval defaults to <code>valid_to IS NULL</code> but can be queried historically. User explicit retraction sets a <code>redacted=true</code> flag that masks content but preserves structural record.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Strongest audit story — full historical replay is trivial</li>
+                <li>Re-relevance is a non-issue: invalidated facts still findable, just filtered out by default</li>
+                <li>Handles contradictions natively and explicitly</li>
+                <li>Bitemporal model maps cleanly to source-provenance lineage</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Graph operations are heavier than vector lookups; latency tax on every retrieval</li>
+                <li>Requires sophisticated extraction (entity + relation + temporal scope) — more LLM cost on write</li>
+                <li>Unbounded growth even worse than Option 1</li>
+                <li>Significant engineering investment; less common in productivity-tool stack</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 2 — Tiered demotion with periodic compaction.</h4>
+      <p>For a knowledge-work harness specifically — where the user needs to trust drafts, audit claim provenance, and where the agent is proactive (so memory writes happen without user-in-loop curation) — the tiered approach is the right balance of three of your four novel components. The recall→archive demotion gives bounded retrieval costs that respect the scheduler's budget caps. The "superseded by X" link rather than deletion gives the contradiction-aware provenance lineage. And the non-indexed <code>provenance_blob</code> for compacted entries is exactly the audit substrate you need for "why did the agent draft this claim three months ago?" forensics. Hard delete is reserved only for user explicit retraction, satisfying GDPR-style requirements without polluting the everyday path.</p>
+      <p>The reason to reject Option 1 (pure decay) is that knowledge work is not chat — users will hold the agent accountable for a draft it produced six months ago, and "the source memory decayed below threshold" is not an acceptable explanation. The reason to defer Option 3 (full bitemporal graph) is that it's the architecturally purest answer but represents a 2-3x engineering investment compared to Option 2; once Option 2 is in production and you have observability on which contradictions actually matter, you can selectively upgrade specific entry types (preferences, project facts) to bitemporal edges without rewriting the whole memory layer. Treat Option 3 as a v2 evolution, not a v1 commitment.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://arxiv.org/abs/2305.10250">MemoryBank: Enhancing LLMs with Long-Term Memory (Zhong et al., AAAI 2024)</a>
+      <a href="https://arxiv.org/abs/2502.12110">A-Mem: Agentic Memory for LLM Agents (Xu et al., 2025)</a>
+      <a href="https://arxiv.org/abs/2605.06527">STALE: Can LLM Agents Know When Their Memories Are No Longer Valid?</a>
+      <a href="https://arxiv.org/html/2504.19413v1">Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory</a>
+      <a href="https://medium.com/@Nexumo_/when-agent-memory-learns-to-forget-21fb08a88513">When Agent Memory Learns to Forget (Nexumo)</a>
+      <a href="https://stevekinney.com/writing/agent-memory-systems">Memory Systems for AI Agents (Steve Kinney)</a>
+      <a href="https://www.leoniemonigatti.com/blog/memgpt.html">Virtual context management with MemGPT and Letta</a>
+      <a href="https://blog.getzep.com/content/files/2025/01/ZEP__USING_KNOWLEDGE_GRAPHS_TO_POWER_LLM_AGENT_MEMORY_2025011700.pdf">Zep: A Temporal Knowledge Graph Architecture for Agent Memory</a>
+      <a href="https://help.openai.com/en/articles/8590148-memory-faq">ChatGPT Memory FAQ (OpenAI)</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q01.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="q03.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 02 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

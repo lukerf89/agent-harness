@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-area="sched" data-question-id="q04">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q04 · What budget primitives for scheduled jobs? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04" class="current">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q04 / 12</span>
+      <span class="chip">Scheduler · Budget</span>
+    </div>
+    <h1>What budget primitives should proactive jobs expose — <em>and how do they fail safely?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Without principled caps, proactive loops are a fast path to surprise bills and user loss-of-trust. The cautionary tales are vivid — a $607 Replit bill from an unattended session; a multi-agent loop that scaled from $127/week to $47,000/week in eleven days. The right primitives prevent both runaway spend <em>and</em> silent stuck loops.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">Providers moved away from hard caps. Agent operators have to layer their own — multi-dimensional, with pressure warnings.</h2>
+    <div class="findings">
+      <p>The state of the art for LLM budget controls in 2025-2026 reveals a striking gap: most major providers have moved AWAY from hard spending caps toward soft alerts, leaving production agent operators to roll their own enforcement. OpenAI quietly changed monthly budget limits from hard cutoffs to alerts-only in 2025, leaving developers to layer proxies (LiteLLM, custom gateways) for actual ceilings. Anthropic exposes workspace-scoped spend limits but documents them as "spend notifications" rather than hard kills, with the one exception being the Claude Code workspace, which uniquely supports per-user monthly spend limits. Vercel AI Gateway provides team budgets ($200 default) with 50/75/100% webhook notifications, but explicitly notes that exceeding the limit does NOT automatically stop usage unless a separate pause-projects toggle is enabled.</p>
+      <p>The runaway-cost incidents driving 2025-2026 design thinking are vivid: a <a href="https://blog.vibecoder.me/607-replit-bill-avoiding-runaway-ai-costs">$607 Replit Agent bill</a> from an unattended autonomous session; a multi-agent loop that scaled from $127/week to $47,000/week in eleven days because two agents recursively asked each other for clarification. These have crystallized a consensus: budgets must be MULTI-DIMENSIONAL (cost in dollars, tokens, wall-clock, step count, and tool calls) because each catches a different failure mode — token budgets prevent runaway prompts, step budgets prevent infinite loops, time budgets prevent stuck workflows, and cost budgets prevent cascading spend. Single-dimension caps consistently miss real-world failures.</p>
+      <p>Workflow runtimes (Inngest, Trigger.dev, Hatchet, Temporal) handle ADJACENT concerns well — concurrency keys for fair scheduling, throttling per-user via expression keys, step-level retries — but none of them natively enforce dollar/token budgets. Inngest's <code>step.ai.infer</code> adds telemetry but the cost guard still lives in your code. The most sophisticated open-source budget enforcement lives in LLM proxies: <a href="https://docs.litellm.ai/docs/proxy/users">LiteLLM</a> exposes <code>max_budget</code>, <code>soft_budget</code>, and <code>budget_duration</code> per key, per team, and per end-user, with overlapping windows ($10/day AND $100/month on the same key), hard-rejecting requests with <code>ExceededBudget</code> when exceeded.</p>
+      <p>The emerging pattern from production circuit-breaker designs is a three-layer gateway: a token-bucket throttler for volume, circuit breakers triggered by cost-per-request thresholds, and a fallback chain that gracefully degrades (smaller/cheaper model, disabled tools, cached responses, reduced reasoning depth) rather than failing hard. Cloud-cost UX precedent (AWS Budgets) standardizes graduated alert thresholds at 50/75/90/100% with both actual and forecasted signals, routed to high-signal channels (Slack, PagerDuty) rather than email alone, and supports auto-actions at hard thresholds.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">Single-dimension caps miss the failures that matter. The recommended path is multi-dimensional + graceful.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Single-dollar cap">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Single-Dimension Dollar Cap (Replit-style)</h3>
+          </div>
+          <p class="summary">Each scheduled job declares a USD ceiling; harness kills the job when cost-to-date exceeds it.</p>
+          <div class="how">
+            <p>When a watcher fires, the harness computes cost in real time from per-model pricing tables and aborts the job if cumulative spend crosses the cap. Caps stack at job, day, and workspace scopes — the tightest binding wins. User UI shows one number per scope.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Simple mental model for non-technical knowledge workers</li>
+                <li>Maps directly to bill-shock prevention (the actual user fear)</li>
+                <li>Easy to default and document ("$0.50/run, $5/day per workspace")</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Misses infinite-loop and stuck-tool failures that haven't burned cash yet but will</li>
+                <li>Single number obscures runaway-token vs runaway-toolcall failure signatures</li>
+                <li>Real-time cost calc requires provider pricing tables that drift</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-2" data-option-name="Multi-dim execution budget + graceful degradation">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Multi-Dimensional Execution Budget (+ graceful degradation)</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">Every job carries a typed budget tuple — <code>{dollars, tokens, wall_clock_seconds, model_calls, tool_calls}</code> — and the first dimension to exhaust ends the job, with model-downgrade thresholds before hard kills.</p>
+          <div class="how">
+            <p>Job spec declares limits per dimension; harness tracks each independently and emits structured "budget pressure" warnings to the model when 75% of any dimension is spent (giving the agent a chance to wrap up cleanly). Scopes layer (per-job, per-user/day, per-workspace/month). On 75% workspace spend, auto-downgrade model class; on exhaustion, checkpoint state, post notification, and offer a one-click "extend budget and resume" to the user.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Catches all four documented failure modes (runaway prompt, infinite loop, stuck tool, cascading spend)</li>
+                <li>Pressure-warning UX lets the agent finish the task instead of failing mid-stream</li>
+                <li>Maps cleanly to provenance/draft artifacts — partial drafts survive budget exhaustion</li>
+                <li>Aligns with knowledge-work expectations (degraded synthesis &gt; no synthesis)</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>More knobs means more decisions for the user (hide behind smart defaults)</li>
+                <li>Implementing pressure-injection requires harness-side prompt manipulation</li>
+                <li>Tracking five dimensions per job adds bookkeeping overhead</li>
+                <li>Model downgrade can silently degrade output quality without user awareness</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-3" data-option-name="Tiered budget w/ degradation only">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Tiered Budget with Graceful Degradation (3-layer gateway)</h3>
+          </div>
+          <p class="summary">Soft caps trigger model downgrade or tool-pruning before hitting hard kill ceilings — same UX pattern as Option 2 but with dollars as the only dimension.</p>
+          <div class="how">
+            <p>Three thresholds per scope. At 50% spend: notify-only. At 75%: degrade — switch from Opus to Sonnet (or Sonnet to Haiku), disable expensive tools, cap reasoning depth, prefer cached responses. At 100%: hard kill with checkpoint. Inspired by AWS Budgets actions plus circuit-breaker literature.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Preserves user experience during budget squeeze instead of failing outright</li>
+                <li>Aligns with cost-aware routing patterns already used by AI gateways</li>
+                <li>Simpler than Option 2 — one dimension to reason about</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Model downgrade can silently degrade output quality without user awareness</li>
+                <li>Misses loop/stuck-tool failures that Option 1 also misses</li>
+                <li>Degradation paths must be tested per workflow type</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-4" data-option-name="Proxy-enforced dollars + harness step caps">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Proxy-Enforced Dollar+Token with Job-Local Step Caps</h3>
+          </div>
+          <p class="summary">Borrow LiteLLM's per-key dollar+token model for spend, layered with harness-local step and wall-clock limits per job invocation.</p>
+          <div class="how">
+            <p>Each user/workspace gets a virtual API key with <code>max_budget</code> (USD), <code>soft_budget</code> (alert), <code>budget_duration</code> (per day/month), and TPM/RPM limits. Per-scheduled-job specs additionally declare <code>max_steps</code>, <code>max_wall_clock</code>, and <code>max_tool_calls</code> enforced inside the harness. Spend control is provider-agnostic; flow control is harness-native.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Cleanly separates "money safety" (proxy) from "control flow safety" (harness)</li>
+                <li>Reuses battle-tested LiteLLM enforcement instead of reimplementing</li>
+                <li>Per-key model gives clean per-workspace/per-user isolation</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Two enforcement layers means two places to debug when a job is killed</li>
+                <li>Adds a hard proxy dependency in the request path (latency, reliability)</li>
+                <li>Doesn't natively support degradation — kills are binary</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 2 — Multi-Dimensional Execution Budget, extended with Option 3's graceful-degradation tier.</h4>
+      <p>Knowledge-work scheduled jobs (watch inbox, monitor news on topic X, draft weekly digest) are uniquely vulnerable to all four failure modes: a draft generator can token-bloat, a research watcher can tool-call-loop on a slow source, a triage job can wall-clock-hang on a flaky webhook. A single-dollar cap (Option 1) reproduces the Replit failure mode where the cap fires AFTER the damage. A proxy-only model (Option 4) misses step/loop failures and conflates "money safety" with "the work was actually useful" — for knowledge work, a $0.30 watcher that loops 400 times and produces nothing is worse than a $0.30 watcher that produces a partial draft. The multi-dimensional budget plus pressure-warning gives the model the chance to checkpoint a draft artifact before exhaustion, which compounds with your "draft as first-class versioned artifact" primitive.</p>
+      <p>The UX surface should be opinionated: ship two preset tiers (Light: $0.10/run, 30s, 20 steps; Heavy: $1/run, 5min, 100 steps), expose a one-line override per watcher, enforce a workspace-level monthly hard ceiling that defaults to $20 (the bill-shock floor most consumer users tolerate), and emit 50/75/100% notifications. At 75% workspace spend, auto-downgrade to a cheaper model class and notify; at 100%, pause all watchers and require explicit reactivation. Make extension a single tap from the alert — the AWS Budgets lesson is that friction-free extension prevents users from disabling budgets entirely.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://platform.claude.com/docs/en/build-with-claude/workspaces">Anthropic Workspaces Documentation</a>
+      <a href="https://satgate.io/blog/how-to-add-budget-limits-to-openai-api-calls">OpenAI API Budget Limits: Control Spend Before Calls (SatGate)</a>
+      <a href="https://vercel.com/docs/spend-management">Vercel Spend Management Documentation</a>
+      <a href="https://docs.litellm.ai/docs/proxy/users">LiteLLM Budgets &amp; Rate Limits</a>
+      <a href="https://www.inngest.com/docs/guides/concurrency">Inngest Concurrency Management</a>
+      <a href="https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-best-practices.html">AWS Budgets Best Practices</a>
+      <a href="https://blog.vibecoder.me/607-replit-bill-avoiding-runaway-ai-costs">The $607 Replit Bill — Avoiding Runaway AI Costs</a>
+      <a href="https://www.rack2cloud.com/ai-inference-execution-budgets/">Execution Budgets for Autonomous Systems</a>
+      <a href="https://www.truefoundry.com/blog/rate-limiting-ai-agents-preventing-llm-api-exhaustion">Rate Limiting AI Agents: 3-Layer Gateway (TrueFoundry)</a>
+      <a href="https://relayplane.com/blog/agent-runaway-costs-2026">Agent Runaway Costs: How to Set LLM Budget Limits</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q03.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="q05.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 04 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

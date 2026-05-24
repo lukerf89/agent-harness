@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-area="memory" data-question-id="q03">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q03 · How should source trust be calibrated? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03" class="current">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q03 / 12</span>
+      <span class="chip">Memory · Trust</span>
+    </div>
+    <h1>How should the agent calibrate trust <em>across sources of recalled facts?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Without calibration, a statement on a public blog gets treated the same as a statement from the CFO in writing — a recipe for confident hallucination. Get this right and citations become trustworthy; get it wrong and the agent's grounding amounts to "look, sources!" without epistemic weight.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">The industry frontier is converging on multi-signal blends — not a single scalar trust number.</h2>
+    <div class="findings">
+      <p>How modern systems calibrate source trust splits along a spectrum from purely manual (hand-tuned weights per source type) to fully learned (online updates from user behavior), with most production systems sitting in a hybrid middle. <a href="https://www.glean.com/product/enterprise-graph">Glean's Enterprise Graph</a> is the most mature reference: it uses click signals, dwell time, anchor scores, data-source affinity, role/department, and an organizational people-graph to rank — but critically, all of this layers on top of strict per-source ACLs rather than a single global "trust score." Perplexity's RAG pipeline assembles confidence from four pillars (trustworthiness, authority, corroboration, provenance) and one analysis decomposed its weighting as ~40% authority + 35% freshness + 25% schema/structure. Notably, the field has shifted from domain-based authority (PageRank-style) to author-based authority — domain-authority correlation with citation likelihood dropped from r=0.43 (pre-2024) to r=0.18, while author-attributed content gets 58% more citations than anonymous content.</p>
+      <p>Academic 2024-2026 work confirms LLMs are bad at this by default. <a href="https://arxiv.org/pdf/2603.25092">AuthorityBench</a> shows models frequently fail to discount low-authority sources and treat unreliable content equally to authoritative material; the most effective interventions were explicit authority annotations in prompts and retrieval-layer authority ranking, not relying on the LLM to infer trust. KG-RAG calibration research found naive RAG exhibits overconfidence despite factual errors and proposed causality-aware calibration that adjusts confidence based on provenance edges. Memory-architecture work (MemOS, Mem0) recommends attaching structured metadata — source, timestamp, sensitivity, author, version — to every memory unit so retrieval can be metadata-gated rather than purely semantic.</p>
+      <p>Google's E-E-A-T is the most-studied authority framework, and Google itself is explicit that there is no single E-E-A-T "score." Instead, dozens of signals get blended; AI Overview citations are 2.3x more likely to pick high-E-E-A-T pages. The relevant lesson for a knowledge-work harness: even the most sophisticated system in the world avoids a single scalar trust number per source and instead keeps multiple orthogonal signals available at ranking time.</p>
+      <p>Temporal weighting is treated as orthogonal to authority. Standard practice in agent memory is exponential decay with a tunable half-life, applied as a soft rerank multiplier between roughly 0.3x and 1.5x — recency does not override authority, it modulates it. The challenge is that "more recent = more trustworthy" is wrong for many knowledge-work artifacts (a 2-year-old signed contract beats a Slack message from yesterday), which argues against pure recency-bias.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">From simplest to most expressive — but the empirical winners all blend signals.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Static source-type weights">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Static source-type weights</h3>
+          </div>
+          <p class="summary">Operator-configured trust score per source type (email = 0.9, internal doc = 0.8, public web = 0.5), applied as a multiplier at rerank.</p>
+          <div class="how">
+            <p>A YAML/JSON config maps each integration to a trust prior. At retrieval, the final score is <code>semantic_similarity × source_trust × recency_decay</code>. The user can override per-domain. No learning loop. Source-type is the only authority signal beyond content match.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Trivially explainable — a user can ask "why did you trust this?" and see the static weight</li>
+                <li>Zero cold-start problem; works from day one</li>
+                <li>No risk of feedback poisoning or drift from outlier corrections</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Ignores that "email" can mean spam or the CEO; treats all instances equally</li>
+                <li>Operator burden to tune and maintain; weights go stale as workflows shift</li>
+                <li>Misses the strongest signal in knowledge work — <em>who</em> said it, not <em>where</em> it lived</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-2" data-option-name="Pure learned trust">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Pure learned trust from corrections</h3>
+          </div>
+          <p class="summary">Treat every user correction ("that was wrong," "trust this more") as a training signal; learn per-source-instance trust online.</p>
+          <div class="how">
+            <p>Each memory or source carries a learned weight initialized neutrally. When the user corrects a generated answer, the harness assigns negative reward to the cited sources and positive reward to whatever the user provided instead, using a simple bandit or RLHF-lite reward model. Over time the system learns that one specific Substack is more reliable than another even within the same "blog" source type.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Adapts to the individual user's actual reality (their CEO, their consultants, their newsletters)</li>
+                <li>Captures fine-grained source-instance trust without manual config</li>
+                <li>Improves over time without operator work</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Cold-start: useless for the first weeks, when the user most needs confidence</li>
+                <li>Vulnerable to poisoning from a few misclicks or biased corrections</li>
+                <li>Hard to explain why a source is now distrusted</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-3" data-option-name="Authority graph">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Authority graph from org metadata</h3>
+          </div>
+          <p class="summary">Derive trust from a knowledge graph of people, roles, and document provenance — Glean-style — rather than from the source channel.</p>
+          <div class="how">
+            <p>Build an entity graph where every fact links to its author (resolved across email, doc, calendar). Author nodes carry attributes (role, seniority, recency-of-collaboration, frequency-of-correctness). Trust for a recalled fact = function(author_authority_in_topic, document_recency, corroboration_count). A statement from the CEO inherits her authority node; a public blog inherits low authority unless the author is identifiable and elsewhere-cited.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Captures the real signal in a workplace — <em>who</em> is the authority on what</li>
+                <li>Naturally supports corroboration (multiple authors saying the same thing boosts confidence)</li>
+                <li>Aligns with where industry is heading: Perplexity author-based authority, Glean people-pillar, E-E-A-T 2025</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Requires nontrivial entity resolution (email-author = Slack-user = doc-author)</li>
+                <li>Cold-start until the graph fills out; small/early users get little benefit</li>
+                <li>Risks encoding org politics ("CEO is always right") and entrenching bias</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-4" data-option-name="Layered hybrid (type + author + corroboration + learned)">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Layered hybrid — typed prior + author graph + corroboration + bounded learned override</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">Combine all three: a static source-type prior bootstraps trust on day one, an authority graph refines it per author, corroboration boosts agreed-upon facts, and learned overrides from user corrections adjust persistent outliers.</p>
+          <div class="how">
+            <p>Each fact in vector memory stores <code>{source_type, author_id, timestamp, ingestion_provenance}</code>. At retrieval, <code>score = relevance × (w1·type_prior + w2·author_authority + w3·corroboration_boost) × recency_modulator × (1 + learned_delta)</code>. The <code>learned_delta</code> is bounded (e.g., ±0.3) so a handful of corrections cannot flip a high-authority source to untrusted. Type prior fades in weight as the author graph fills out (Bayesian-shrinkage).</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Works from day one (type prior) but improves with use (graph + learned)</li>
+                <li>Matches the empirical pattern from production systems (Glean, Perplexity)</li>
+                <li>Resilient: no single signal can be exploited or corrupted</li>
+                <li>Supports the harness's <em>provenance lineage</em> — every score is decomposable into its contributors</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Most complex to build and tune; many hyperparameters</li>
+                <li>Risk of opacity unless score decomposition is exposed in the UI</li>
+                <li>Needs entity resolution and a corroboration index — both nontrivial infrastructure</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 4 — Layered hybrid (typed prior + author graph + corroboration + bounded learned override).</h4>
+      <p>For a knowledge-work harness specifically — where one of your novel primitives is already <em>source-provenance lineage on every claim</em> — Option 4 is the only choice that compounds with the rest of the architecture instead of fighting it. You're already paying the cost to track provenance per fact; the marginal cost of also storing <code>author_id</code> and computing corroboration is small, and the payoff is large. Option 1 is too crude for the email-vs-blog distinction (it can't tell CEO-email from intern-email). Option 2 alone is dangerous in a knowledge-work setting because the first weeks of use are when the user is hardest-pressed to catch errors — exactly when a learned-only system has no signal. Option 3 is closest in spirit but brittle on cold start.</p>
+      <p>The decisive design choice is to make trust a <em>vector</em>, not a <em>scalar</em>. Store the contributing signals (source-type prior, author-authority, corroboration count, recency, learned delta) separately, blend them at retrieval, and surface the decomposition when generating citations. This lets the harness say "I trusted this because: (a) CEO is the author, (b) corroborated by 3 other docs from the strategy folder, (c) written 2 weeks ago" — the kind of explainability that distinguishes a tool a knowledge worker will rely on from one they have to second-guess. Bound the learned override so feedback poisoning is contained, and let the type-prior weight decay as the author graph and learning signals mature.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://www.glean.com/product/enterprise-graph">Glean Enterprise Graph</a>
+      <a href="https://ziptie.dev/blog/how-perplexity-ai-answers-work/">How Perplexity AI Answers Work: Retrieval, Ranking, Citation</a>
+      <a href="https://www.metricsrule.com/research/rag-author-markup-publication-date-citations/">RAG Confidence Weighting: Author Markup and Freshness</a>
+      <a href="https://arxiv.org/pdf/2603.25092">AuthorityBench: Benchmarking LLM Authority Perception for RAG</a>
+      <a href="https://arxiv.org/html/2601.09241">When to Trust: Causality-Aware Calibration for KG-RAG</a>
+      <a href="https://tianpan.co/blog/2026-04-17-enterprise-rag-knowledge-base-governance">Enterprise RAG Governance: The Org Chart Behind Your Retrieval Pipeline</a>
+      <a href="https://arxiv.org/pdf/2204.13074">TeachMe / Towards Teachable Reasoning Systems</a>
+      <a href="https://arxiv.org/pdf/2603.07670">Memory for Autonomous LLM Agents survey</a>
+      <a href="https://mem0.ai/blog/state-of-ai-agent-memory-2026">State of AI Agent Memory 2026 (Mem0)</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q02.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="q04.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 03 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

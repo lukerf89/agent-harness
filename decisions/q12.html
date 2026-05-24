@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-area="loop" data-question-id="q12">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q12 · How to show long-task progress? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12" class="current">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q12 / 12</span>
+      <span class="chip">Loop · Observability</span>
+    </div>
+    <h1>What progress UX for <em>10–30 minute deep-research tasks?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Long-horizon tasks fail on user patience, not on capability. A stream of "fetching, fetching, fetching" is no better than a spinner; a generic progress bar without ETA loses people fast. The right representation is load-bearing for the harness being usable at all.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">Visible plans sustain patience. Interim findings beat progress bars. Pure spinners abandon users within 45 seconds.</h2>
+    <div class="findings">
+      <p>Across 2024-2026, every leading long-running agent product has converged on the same insight: <em>a chronological event stream alone destroys patience, but a stream paired with a visible plan sustains it for tens of minutes</em>. <a href="https://www.langchain.com/breakoutagents/perplexity">Perplexity's engineering team</a> stated this most directly — when they instrumented Pro Search, users tolerated multi-minute waits <em>only</em> when the underlying plan was visible and expandable. <a href="https://jakobnielsenphd.substack.com/p/slow-ai">Jakob Nielsen</a> frames the same observation as response-time tiers: under 10s supports turn-taking, 1-10 min "feels conversational if narrated," and 10+ min "breaks the traditional interaction paradigm" and requires an operator-dashboard metaphor rather than a progress bar.</p>
+      <p>The dominant pattern in shipped products is <em>hybrid plan + live event stream with a focused/current node</em>. Devin's session UI splits into a Progress tab (the plan/steps with a current-step highlight) plus Shell/Browser/Editor tabs (the underlying event streams). Manus surfaces a persistent "Manus's Computer" panel alongside a <code>todo.md</code> file that the agent edits live to check off plan items — making the plan a <em>first-class artifact</em> rather than just a UI widget. Cursor's Plan Mode and Claude Code's TodoWrite are functionally identical: a markdown checklist that the agent rewrites, streamed to the UI, with status icons. Perplexity Deep Research shows a three-phase sidebar (interpret → execute → synthesize) with expandable steps; ChatGPT Deep Research as of Feb 2026 added real-time progress tracking with the ability to interrupt and refine.</p>
+      <p>A separate, equally important finding: <em>interim findings (cards as they arrive) outperform pure progress indicators for research specifically.</em> Perplexity surfaces sub-queries and intermediate sources as they accumulate; ChatGPT Deep Research streams a running source list; Manus emits artifacts into the side panel as it produces them. This serves two purposes — it (a) gives the user something to skim while waiting, reducing perceived latency, and (b) lets them course-correct mid-run if they see the agent going wrong.</p>
+      <p>What loses patience is well-documented: opaque "thinking…" displays (OpenAI's original o1 hidden chain-of-thought generated user backlash, which is why o3-mini was updated to expose summarized reasoning); generic spinners on multi-minute tasks ("a loading spinner on a 45-second AI task is an abandonment trigger" — Particula); and percent-done bars without an ETA. The <a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/">METR study</a> on long agent tasks found measurable performance degradation past ~35 minutes — meaning the UX must also support <em>graceful interruption and salvage</em>, not just patient waiting.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">Each maps to a different mental model — supervisor, reader, operator, or hands-off.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Plan tree + event stream">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Plan tree + live event stream (hybrid, two-pane)</h3>
+          </div>
+          <p class="summary">Persistent left/top pane shows the research plan as a checkable tree with current-focus highlight; right/bottom pane streams events (tool calls, fetches, URLs) chronologically.</p>
+          <div class="how">
+            <p>The agent writes its plan as a structured artifact at the start (sub-goals → sub-sub-goals), updates step status as work proceeds, and emits raw events into a collapsible log beneath. The current node is visually anchored. This is Devin + Manus + Cursor + Claude Code, all of whom independently converged here.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Lets users zoom out (plan) or in (events) at will</li>
+                <li>Plan-as-artifact doubles as the agent's working memory, supporting pause/resume</li>
+                <li>The current-focus highlight serves as the "where are we" anchor pure logs lack</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Plans for true research are often <em>discovered</em>, not pre-stated — early plan is misleading</li>
+                <li>Two-pane UI is dense; can feel overwhelming on mobile or for non-technical users</li>
+                <li>Risks teaching users to micromanage steps instead of trusting outcomes</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-2" data-option-name="Interim-findings cards">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Interim-findings cards (artifacts-first)</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">The primary view is a growing list of cards — each card a finding, source, sub-question answered, or draft fragment — with progress metadata as ambient secondary info.</p>
+          <div class="how">
+            <p>Inspired by Perplexity Deep Research's source list and ChatGPT's evidence stream. As the agent works, every meaningful artifact (a source read, a claim extracted, a sub-question answered, a draft paragraph) emits a card. Users scroll/skim the accumulating output during the wait; the final report is composed from these cards. Plan and event log are available but secondary.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Inverts perceived latency — the user is <em>reading</em> the output rather than waiting for it</li>
+                <li>Aligns perfectly with the harness's source-provenance lineage primitive (each card carries its evidence)</li>
+                <li>Natural fit for the draft-as-versioned-artifact primitive — early cards become draft sections</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Cards before synthesis can mislead: a half-formed finding looks authoritative</li>
+                <li>Hard to convey "I'm 60% done" — no obvious progress anchor</li>
+                <li>Requires the agent to emit well-formed artifacts continuously, raising agent-side complexity</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-3" data-option-name="Three-layer operator dashboard">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Three-layer operator dashboard (Nielsen-style)</h3>
+          </div>
+          <p class="summary">ETA + budget bar (top), critical-path node + plan tree (middle), recent events + interim findings (bottom) — all simultaneously visible, like a build/deploy dashboard.</p>
+          <div class="how">
+            <p>Directly applies Nielsen's three-layer model. Top strip always shows: time elapsed, ETA window, budget consumed vs. cap, and a "stop and salvage" button. Middle pane shows the plan tree with the critical-path (gating) node highlighted. Bottom pane interleaves events and interim findings. Modeled on Vercel deploy dashboards and GitHub Actions live logs.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Honest about uncertainty (ETA windows, not false precision) and cost</li>
+                <li>Salvage button + budget cap = principled handling of the 35-min degradation cliff</li>
+                <li>Familiar metaphor for anyone who's watched a CI build</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Dashboard density is high for knowledge workers who aren't engineers</li>
+                <li>Critical-path concept assumes a DAG; pure research is more exploratory</li>
+                <li>Top-strip ETA is hard to estimate honestly for open-ended research</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-4" data-option-name="Progressive disclosure">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Adaptive progressive disclosure (collapsed by default)</h3>
+          </div>
+          <p class="summary">Single-line status pill that expands on click to reveal plan, then expands further to reveal event stream.</p>
+          <div class="how">
+            <p>Default view is one line plus a "show details" affordance. Mid-tier expansion shows the plan checklist (Cursor/Claude Code style). Full expansion shows event stream and interim findings. Background processing kicks in automatically at 60s, with notification on completion.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Respects users who want to fire-and-forget — patience problem partially solved</li>
+                <li>Scales cleanly from 30s to 30min tasks — same UI handles both</li>
+                <li>Aligns with knowledge-work users' expectations (closer to Notion/email than dev tools)</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Hidden-by-default can feel opaque; some users will distrust silent agents</li>
+                <li>Loses Perplexity's documented insight that <em>visible</em> plans drive patience</li>
+                <li>Background-on-completion notification requires reliable cross-session delivery</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 2 — Interim-findings cards, with a collapsible plan tree borrowed from Option 1 for users who want it.</h4>
+      <p>For a knowledge-work harness, the patience problem is solved most durably by <em>making the wait productive reading time</em>. Two of your four novel primitives (source-provenance lineage and draft-as-versioned-artifact) are already card-shaped — every claim has provenance, every draft is a versioned object — so the UI should mirror the data model. As the agent reads sources, surface them as cards with their provenance attached; as it forms claims, surface them as draft fragments that the user can already start editing or accepting. This converts the 10-30 minute wait from "watch a spinner" into "skim the working notes," which is what Perplexity discovered the hard way and what ChatGPT Deep Research's Feb 2026 redesign doubled down on.</p>
+      <p>Layer in the plan tree as a collapsible secondary view (Devin/Manus/Claude Code pattern) so power users can zoom out, and adopt Nielsen's top-strip honesty about ETA and budget — but the <em>primary</em> surface should be the growing artifact stream, not the plan or the event log. The reason to reject the pure dashboard (Option 3) is audience fit: non-coding knowledge workers will not warm to a CI-build aesthetic, and the harness's whole point is that knowledge work is the surface area. Option 1 treats the user as a supervisor; Option 2 treats them as a reader, which matches how researchers, writers, and analysts actually want to engage with a 20-minute task. Pair with a hard 60s threshold for offering background mode and a visible budget cap that ties into the proactive-scheduler primitive.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://www.langchain.com/breakoutagents/perplexity">Perplexity Pro Search — LangChain Breakout Agents case study</a>
+      <a href="https://jakobnielsenphd.substack.com/p/slow-ai">Jakob Nielsen — Slow AI: Designing User Control for Long Tasks</a>
+      <a href="https://particula.tech/blog/long-running-ai-tasks-user-interface-patterns">Particula — Long-Running AI Tasks in UIs: Patterns That Keep Users Engaged</a>
+      <a href="https://docs.devin.ai/work-with-devin/devin-session-tools">Devin Session Tools (Cognition docs)</a>
+      <a href="https://gist.github.com/renschni/4fbc70b31bad8dd57f3370239dccd58f">Manus AI architecture/todo.md investigation</a>
+      <a href="https://cursor.com/docs/agent/plan-mode">Cursor — Plan Mode documentation</a>
+      <a href="https://docs.claude.com/en/docs/agent-sdk/todo-tracking">Claude Code — Todo Lists / TodoWrite</a>
+      <a href="https://openai.com/index/introducing-deep-research/">OpenAI introduces deep research</a>
+      <a href="https://techcrunch.com/2025/02/06/openai-now-reveals-more-of-its-o3-mini-models-thought-process/">TechCrunch — OpenAI now reveals more of o3-mini's thought process</a>
+      <a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/">METR — Measuring AI Ability to Complete Long Tasks (35-min degradation)</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q11.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="index.html" class="btn btn-primary">Done — review all<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 12 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>

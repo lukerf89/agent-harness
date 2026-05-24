@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-area="prov" data-question-id="q07">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q07 · At what granularity should lineage be tracked? — KW Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="decision.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="container bar">
+    <div class="brand"><a href="index.html">Knowledge-Work Harness <em>·</em> Decisions</a></div>
+    <nav class="qnav">
+      <a href="q01.html" data-qid="q01">01</a>
+      <a href="q02.html" data-qid="q02">02</a>
+      <a href="q03.html" data-qid="q03">03</a>
+      <a href="q04.html" data-qid="q04">04</a>
+      <a href="q05.html" data-qid="q05">05</a>
+      <a href="q06.html" data-qid="q06">06</a>
+      <a href="q07.html" data-qid="q07" class="current">07</a>
+      <a href="q08.html" data-qid="q08">08</a>
+      <a href="q09.html" data-qid="q09">09</a>
+      <a href="q10.html" data-qid="q10">10</a>
+      <a href="q11.html" data-qid="q11">11</a>
+      <a href="q12.html" data-qid="q12">12</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">
+      <span class="qnum">Q07 / 12</span>
+      <span class="chip">Provenance · Granularity</span>
+    </div>
+    <h1>At what granularity should source lineage be tracked <em>through synthesis?</em></h1>
+    <div class="why">
+      <span class="why-label">Why it matters</span>
+      Per-sentence is precise but expensive and — counter-intuitively — degrades attribution quality. Per-paragraph is cheaper but coarse. Per-document loses the whole point. Get this wrong and you either pay 5× the storage for false precision or strip audit value entirely.
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">01</span>Research findings</div>
+    <h2 class="section-title">Surprising consensus: "finer is better" is wrong. Sentence-level enforcement degrades attribution by 16–276%.</h2>
+    <div class="findings">
+      <p>The granularity question has become a major area of empirical research in 2024-2026, with surprising consensus that intuitions about "finer is better" are wrong. The Johns Hopkins paper <a href="https://arxiv.org/abs/2604.01432">Are Finer Citations Always Better?</a> (Wang et al., 2025) found that enforcing sentence-level citations degraded attribution quality by 16-276% compared to the optimal setting, which was paragraph-level (k=4-8 sentences). Larger models suffer most: a 120B-parameter model improved 96.7% moving from sentence to paragraph granularity. The mechanism is straightforward: sentence boundaries disrupt coreference chains and multi-sentence inference, forcing the model to either over-cite (every sentence borrows from many sources) or fabricate plausible-looking single-source attributions. Task-dependent results matter too: factoid reasoning (HotpotQA) peaks at k=4 sentences, while summarization (GovReport) prefers k=16.</p>
+      <p>Anthropic's Citations API takes a sophisticated approach: it chunks documents at the sentence level on the input side, but lets Claude <em>chain consecutive sentence spans</em> on the output side to cover paragraph-sized claims. The clever part is that <code>cited_text</code> does not count against output tokens (only inline citation markers do), which means precision is essentially free on the output side once chunking is set up. Perplexity, by contrast, uses inline claim-level numbered citations attached during generation rather than post-hoc, but ZipTie/drainpipe analyses note its known failure mode is "misattribution": the synthesis is correct but the citation marker points at the wrong source, suggesting claim-level mapping is fragile when many sources are interleaved.</p>
+      <p>The faithfulness research is sobering. <a href="https://arxiv.org/abs/2412.18004">Correctness is not Faithfulness in RAG Attributions</a> (Wallat et al., 2024) found up to 57% of "correct-looking" citations are post-rationalized: the model generated the answer from priors and then attached a plausible-looking citation afterward. Finer granularity makes post-rationalization <em>worse</em>, not better, because the model has to invent more citation hooks per token. Sub-sentence proposals try to fix this by demanding "concise and sufficient" spans, but require a separate extraction pass that adds latency and another point of failure.</p>
+      <p>For memory compaction specifically, the <a href="https://arxiv.org/pdf/2602.17913">Provenance-Aware Tiered Memory</a> work frames the core dilemma: "write-time compression forces irreversible retention decisions under uncertainty." Once you summarize, you cannot reconstitute sentence-level lineage. The proposed solution is a two-tier system where summarized memory carries paragraph-level pointers back to a verifiable cold store, with a runtime sufficiency check that pulls the original chunk when needed.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">02</span>Options — pick one</div>
+    <h2 class="section-title">Sentence is too expensive; paragraph is too coarse alone. The winning patterns layer them.</h2>
+
+    <div class="options-list">
+
+      <div class="option" data-option-id="option-1" data-option-name="Sentence-default everywhere">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 1</span>
+          <div class="head">
+            <h3>Sentence-default everywhere</h3>
+          </div>
+          <p class="summary">Every claim in every artifact carries one or more sentence-level source IDs, propagated through all synthesis and compaction steps.</p>
+          <div class="how">
+            <p>Each generated sentence gets a citation array stored alongside the text in the vector memory. Compaction must preserve per-sentence lineage; if a summary sentence merges three source sentences, all three IDs attach. Storage is roughly 3-5x the text size.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Maximum auditability; user can trace any claim to one or two source sentences</li>
+                <li>Matches what Perplexity users expect from "AI-grounded" output</li>
+                <li>No second pass needed when a claim is challenged</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>16-276% attribution quality degradation per JHU paper; model over-cites or fabricates</li>
+                <li>2-5x storage and 1.5-2x output token cost</li>
+                <li>Post-rationalization rate climbs above 50%; precision is illusory</li>
+                <li>Compaction either kills lineage or balloons summaries</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-2" data-option-name="Paragraph + cached spans">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 2</span>
+          <div class="head">
+            <h3>Paragraph-default with cached source spans</h3>
+          </div>
+          <p class="summary">Lineage is tracked at the paragraph level for synthesis, but each paragraph caches its supporting source spans (the raw quoted text) so finer granularity can be reconstructed locally without re-querying.</p>
+          <div class="how">
+            <p>Every drafted paragraph stores: (a) ordered list of source-document IDs it draws from, (b) the actual extracted spans (Anthropic-style <code>cited_text</code>) that were retrieved to write it. On compaction, paragraph-level lineage propagates intact; sentence-level reconstruction is a local Claude call against the cached spans. Storage is ~1.5-2x text size.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Matches empirically optimal model granularity (paragraph)</li>
+                <li>Cheap output-token cost; one citation set per paragraph</li>
+                <li>Survives compaction cleanly</li>
+                <li>Sentence-level on-demand stays local (cached spans), no live re-retrieval</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>"Which sentence?" answers are reconstructed, not authoritative</li>
+                <li>Cached spans add storage even when never queried</li>
+                <li>Post-rationalization still possible at paragraph level (just less measurable)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option" data-option-id="option-3" data-option-name="Paragraph default + sentence on challenge">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 3</span>
+          <div class="head">
+            <h3>Pure hybrid — paragraph default, sentence on challenge</h3>
+          </div>
+          <p class="summary">Generation and storage are paragraph-level by default; if a user challenges a specific claim, an on-demand worker re-runs the relevant generation step with Anthropic's Citations API enabled to get sentence-level evidence.</p>
+          <div class="how">
+            <p>Default writes carry one source-set per paragraph. When a user clicks "verify this" on a sentence, the harness reconstructs the input context for the paragraph (from the audit log), calls Claude with sentence chunking, and stores the resulting sentence-level lineage as an augmentation. Storage stays lean unless challenged.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Lowest steady-state storage and token cost</li>
+                <li>Reconstruction matches the actual model behavior at challenge time</li>
+                <li>Aligns with how humans actually audit (spot-check, not exhaustive)</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Requires keeping enough audit log to re-run generation (defeats some compaction savings)</li>
+                <li>Re-generation may produce different sentence-level attributions than the original</li>
+                <li>Adds verification latency (seconds) at exactly the moment a user is suspicious</li>
+                <li>Faithfulness is reconstructed, not preserved — arguably worse than no audit</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="option recommended" data-option-id="option-4" data-option-name="Tiered provenance memory">
+        <div class="radio"></div>
+        <div class="body">
+          <span class="opt-label">Option 4</span>
+          <div class="head">
+            <h3>Tiered provenance memory (TierMem-style)</h3>
+            <span class="badge-rec">Recommended</span>
+          </div>
+          <p class="summary">Two-tier memory: warm tier holds paragraph-level lineage with cached spans; cold tier preserves full sentence-level provenance and original documents indefinitely. A runtime sufficiency check escalates from warm to cold when a query needs precision.</p>
+          <div class="how">
+            <p>Drafts and synthesized artifacts live in warm memory with paragraph lineage + span cache (per Option 2). Original retrievals, raw research notes, and the first-pass draft live in cold storage with sentence-level lineage and never get compacted. A retrieval-time check (claim confidence + user trust level + claim sensitivity) decides which tier to serve. Compaction operates only on warm tier.</p>
+          </div>
+          <div class="tradeoffs">
+            <div class="pros">
+              <span class="pros-label">Pros</span>
+              <ul>
+                <li>Best fit for the four novel harness primitives (especially layered memory and draft-as-artifact)</li>
+                <li>Compaction is safe by construction (cold tier always intact)</li>
+                <li>Audit always returns authoritative answers (cold tier never reconstructed)</li>
+                <li>Cost scales with how much you draft, not how much you read</li>
+              </ul>
+            </div>
+            <div class="cons">
+              <span class="cons-label">Cons</span>
+              <ul>
+                <li>Two storage systems to maintain and keep consistent</li>
+                <li>Cold tier grows unboundedly; needs its own retention policy</li>
+                <li>Sufficiency check is itself a model call (small but nonzero)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-reasoning">
+      <div class="rec-head">
+        <span class="rec-dot"></span>
+        <span class="rec-eyebrow">Recommendation</span>
+      </div>
+      <h4>Option 4 — Tiered provenance memory.</h4>
+      <p>For a knowledge-work harness whose four novel primitives include both layered cross-session vector memory and draft-as-first-class artifact, the granularity decision cannot be made independently of compaction and the draft lifecycle. Option 1 fights the model and the storage budget; Option 3's "reconstruct on challenge" sounds elegant but is exactly the failure mode the faithfulness papers warn about (post-hoc rationalization dressed up as audit). Option 2 is the right <em>default</em> behavior, but it needs Option 4's cold tier behind it to make compaction safe and audits authoritative. The two tiers map cleanly onto your existing primitives: warm tier is the working memory the proactive scheduler reads, cold tier is the provenance substrate the lineage primitive guarantees.</p>
+      <p>The concrete shape: at write time, store paragraph-level citations with cached spans in warm, and append the full sentence-level chunk-to-claim mapping (plus original retrieval response) to an append-only cold log keyed by draft-version. At read/synthesis time, the scheduler works from warm only. On "verify this claim," the audit path skips reconstruction entirely and queries the cold log by <code>(draft_id, paragraph_id, sentence_offset)</code>. This sidesteps the 57% post-rationalization rate because the cold record is the original generation, not a re-derivation, and it lets the warm tier stay cheap enough that compaction is genuinely useful instead of a lossy compromise.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bay">
+  <div class="container">
+    <div class="section-eyebrow"><span class="num">03</span>Sources consulted</div>
+    <div class="sources">
+      <a href="https://arxiv.org/abs/2604.01432">Are Finer Citations Always Better? Rethinking Granularity for Attributed Generation (JHU, 2025)</a>
+      <a href="https://arxiv.org/abs/2412.18004">Correctness is not Faithfulness in RAG Attributions (Wallat et al., 2024)</a>
+      <a href="https://platform.claude.com/docs/en/docs/build-with-claude/citations">Anthropic Citations API documentation</a>
+      <a href="https://www.anthropic.com/news/introducing-citations-api">Introducing Citations on the Anthropic API</a>
+      <a href="https://arxiv.org/pdf/2509.20859">Concise and Sufficient Sub-Sentence Citations for RAG (2025)</a>
+      <a href="https://arxiv.org/pdf/2602.17913">From Lossy to Verified: A Provenance-Aware Tiered Memory for Agents</a>
+      <a href="https://ziptie.dev/blog/how-perplexity-ai-answers-work/">How Perplexity AI Answers Work: Retrieval, Ranking, Citation Pipeline</a>
+      <a href="https://arxiv.org/pdf/2403.17104">Attribute First, then Generate: Locally-attributable Grounded Text Generation</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="decision-bar">
+  <div class="container inner">
+    <div class="decision-status"><span class="dot"></span>No decision saved yet — pick an option above to record it.</div>
+    <div class="decision-actions">
+      <button class="btn clear-decision" disabled>Clear</button>
+      <a href="q06.html" class="btn"><span class="arrow">←</span>Prev</a>
+      <a href="q08.html" class="btn btn-primary">Next<span class="arrow">→</span></a>
+    </div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="container">
+    <div>Knowledge-Work Harness · Decision 07 / 12 · synthesized from web research.</div>
+    <div class="links">
+      <a href="index.html">All decisions</a>
+      <a href="../ideal-architecture.html">Architecture sketch</a>
+      <a href="../KNOWLEDGE-WORK-HARNESS.md">Design report</a>
+    </div>
+  </div>
+</footer>
+
+<script src="decision.js"></script>
+</body>
+</html>
